@@ -1,0 +1,1804 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>رحلة استكشاف منغوليا</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Tajawal:wght@400;500;700;800&display=swap">
+<style>
+/* Layout: one game shell. A floating score bar sits on top, one screen shows at a time below it,
+   and steppe hills stay fixed behind. On the map screen a winding route links four stations
+   that are also the stage cards. Single daytime look (blue sky, grass, sand), chosen on purpose. */
+:root {
+  --sky: #CFE9F5;
+  --sky-deep: #1F6E9C;
+  --sky-ink: #124A6C;
+  --grass: #7BAA55;
+  --grass-deep: #3E6B3A;
+  --sand: #F6EBCD;
+  --sand-deep: #E2CB97;
+  --earth: #7A4A2B;
+  --ink: #33261A;
+  --ink-soft: #6A5844;
+  --saffron: #E3A41F;
+  --saffron-deep: #B87D0A;
+  --red: #B63E2B;
+  --card: #FFFDF6;
+  --line: #D9C79A;
+  --ok: #2F7D3A;
+  --ok-bg: #E4F2DA;
+  --hint-bg: #FFF1CF;
+  --bad: #B63E2B;
+  --bad-bg: #FBE3DD;
+  --font-display: 'Lalezar', 'Tajawal', 'Segoe UI', Tahoma, sans-serif;
+  --font-body: 'Tajawal', 'Segoe UI', Tahoma, sans-serif;
+  --radius: 18px;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background-color: var(--sky);
+  background-image: linear-gradient(180deg, #BFE3F4 0%, #E6F0D6 50%, #F6EBCD 100%);
+  background-attachment: fixed;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.7;
+  padding-block: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  z-index: 40;
+  background: #BFE3F4;
+}
+body.modal-open { overflow: hidden; }
+
+.app { position: relative; max-width: 1080px; margin: 0 auto; min-height: 100vh; }
+.scenery { position: fixed; inset: auto 0 0 0; height: 24vh; z-index: 0; pointer-events: none; }
+.scenery svg { width: 100%; height: 100%; display: block; }
+
+h1, h2, h3 { font-family: var(--font-display); font-weight: 400; line-height: 1.25; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(2rem, 5.5vw, 3.4rem); color: var(--sky-ink); }
+h2 { font-size: clamp(1.6rem, 4vw, 2.2rem); color: var(--sky-ink); }
+h3 { font-size: 1.35rem; color: var(--earth); }
+p { margin: 0; }
+svg { max-width: 100%; }
+[tabindex="-1"]:focus { outline: none; }
+:focus-visible { outline: 3px solid var(--sky-deep); outline-offset: 3px; border-radius: 8px; }
+
+.main { position: relative; z-index: 1; padding-block: 18px 40px; }
+.screen[hidden] { display: none; }
+.screen { animation: enter .45s ease both; }
+@keyframes enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+.kicker { font-size: .85rem; font-weight: 700; letter-spacing: .12em; color: var(--earth); text-transform: uppercase; }
+.lead { font-size: 1.15rem; max-width: 34em; }
+.sub { color: var(--ink-soft); }
+
+/* ---------- الأزرار ---------- */
+.btn {
+  font: inherit; font-weight: 700; font-size: 1.05rem;
+  min-height: 52px; padding: .55rem 1.4rem;
+  border-radius: 16px; border: 2px solid var(--earth);
+  background: var(--card); color: var(--ink);
+  box-shadow: 0 4px 0 var(--earth);
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease, background .15s ease;
+}
+.btn:hover { background: #fff; }
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--earth); }
+.btn-primary { background: var(--sky-deep); color: #fff; border-color: var(--sky-ink); box-shadow: 0 4px 0 var(--sky-ink); }
+.btn-primary:hover { background: #1A6089; }
+.btn-primary:active { box-shadow: 0 1px 0 var(--sky-ink); }
+.btn-danger { background: var(--red); color: #fff; border-color: #812A1C; box-shadow: 0 4px 0 #812A1C; }
+.btn-danger:hover { background: #A33524; }
+.btn-xl { min-height: 60px; font-size: 1.2rem; padding-inline: 2rem; }
+.btn[disabled] { opacity: .55; cursor: not-allowed; box-shadow: none; transform: none; }
+
+/* ---------- شريط النقاط ---------- */
+.hud {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30;
+  margin-top: 10px;
+  background: var(--card);
+  border: 2px solid var(--earth);
+  border-radius: 20px;
+  box-shadow: 0 4px 0 rgba(122, 74, 43, .35);
+  padding: 10px 14px 12px;
+  display: grid; gap: 8px;
+}
+.hud[hidden] { display: none; }
+.hud-row { display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; }
+.hud-score { display: flex; align-items: baseline; gap: 6px; }
+.hud-star { width: 30px; height: 30px; align-self: center; }
+.hud-num { font-family: var(--font-display); font-size: 2.1rem; line-height: 1; color: var(--saffron-deep); font-variant-numeric: tabular-nums; display: inline-block; }
+.hud-num.bump { animation: bump .5s ease; }
+@keyframes bump { 40% { transform: scale(1.35); color: var(--ok); } }
+.hud-unit { font-weight: 700; color: var(--ink-soft); }
+.hud-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { background: var(--sand); border: 1.5px solid var(--line); border-radius: 999px; padding: 2px 12px; font-size: .92rem; font-weight: 500; }
+.chip b { font-variant-numeric: tabular-nums; }
+.hud-actions { margin-inline-start: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+.hud-btn { font: inherit; font-size: .9rem; font-weight: 700; min-height: 40px; padding: 2px 14px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--sand); color: var(--ink); cursor: pointer; }
+.hud-btn:hover { background: var(--sand-deep); }
+.hud-btn-danger { color: var(--red); }
+.hud-btn[hidden] { display: none; }
+.hud-progress { display: flex; align-items: center; gap: 12px; font-size: .92rem; font-weight: 500; }
+.hud-progress span { white-space: nowrap; }
+.bar { flex: 1; height: 12px; background: var(--sand); border: 1.5px solid var(--line); border-radius: 999px; overflow: hidden; min-width: 60px; }
+.bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--grass), var(--grass-deep)); border-radius: 999px; transition: width .6s ease; }
+
+/* ---------- الصفحة الرئيسية ---------- */
+.home { display: grid; gap: 28px; align-items: center; padding-top: 14px; }
+@media (min-width: 860px) { .home { grid-template-columns: 1fr 1fr; gap: 40px; } }
+.home-text { display: grid; gap: 18px; justify-items: start; min-width: 0; }
+.name-field { display: grid; gap: 4px; width: min(100%, 360px); }
+.name-field label { font-weight: 700; font-size: .95rem; }
+.name-field input { font: inherit; min-height: 50px; padding: 6px 14px; border: 2px solid var(--line); border-radius: 14px; background: #fff; color: var(--ink); }
+.name-field input:focus { border-color: var(--sky-deep); outline: none; box-shadow: 0 0 0 3px rgba(31, 110, 156, .25); }
+.home-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.home-stages { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.home-stages li { background: var(--card); border: 1.5px solid var(--line); border-radius: 999px; padding: 2px 14px; font-weight: 700; font-size: .95rem; }
+.home-stages li:first-child { background: var(--saffron); border-color: var(--saffron-deep); color: var(--ink); }
+.home-art { position: relative; min-width: 0; }
+.home-art #home-map svg { display: block; width: 100%; height: auto; border-radius: 28px; border: 3px solid var(--earth); box-shadow: 0 6px 0 rgba(122, 74, 43, .35); }
+.home-explorer { position: absolute; inset-inline-start: -4px; bottom: -22px; width: clamp(84px, 22%, 130px); filter: drop-shadow(0 4px 0 rgba(0,0,0,.12)); animation: bob 3.2s ease-in-out infinite; }
+.home-explorer svg { display: block; width: 100%; height: auto; }
+@keyframes bob { 50% { transform: translateY(-6px); } }
+.bubble { position: absolute; inset-inline-start: clamp(70px, 24%, 150px); bottom: 24px; background: var(--card); border: 2px solid var(--earth); border-radius: 16px; padding: 4px 14px; font-weight: 700; font-size: .95rem; max-width: 55%; }
+
+/* ---------- خريطة اللعبة ---------- */
+.screen-head { display: grid; gap: 4px; margin: 20px 0 12px; }
+.mapboard svg { display: block; width: 100%; height: auto; border-radius: 24px; border: 3px solid var(--earth); background: #E9F1D8; }
+.station { cursor: pointer; }
+.station:focus-visible { outline: none; }
+.station:focus-visible circle.st-main { stroke: var(--sky-deep); stroke-width: 6; }
+.station text { font-family: var(--font-body); }
+.st-open .st-ring { animation: pulse 1.8s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes pulse { from { opacity: .7; transform: scale(1); } to { opacity: 0; transform: scale(1.7); } }
+
+.stage-grid { display: grid; gap: 16px; margin-top: 18px; grid-template-columns: 1fr; }
+@media (min-width: 640px) { .stage-grid { grid-template-columns: 1fr 1fr; } }
+.stage-card { background: var(--card); border: 2px solid var(--earth); border-radius: var(--radius); box-shadow: 0 5px 0 rgba(122, 74, 43, .35); overflow: hidden; display: grid; grid-template-rows: auto 1fr; min-width: 0; }
+.stage-art { background: linear-gradient(180deg, #CFE9F5, #F6EBCD); padding: 10px 24px 0; height: 130px; display: grid; place-items: end center; border-bottom: 2px solid var(--line); }
+.stage-art svg { height: 120px; width: auto; max-width: 100%; }
+.stage-info { padding: 14px 16px 16px; display: grid; gap: 8px; align-content: start; }
+.stage-no { font-size: .85rem; font-weight: 700; color: var(--earth); letter-spacing: .06em; }
+.stage-info h3 { font-size: 1.5rem; }
+.stage-desc { font-size: .98rem; color: var(--ink-soft); }
+.stage-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pill { font-size: .85rem; font-weight: 700; padding: 1px 12px; border-radius: 999px; border: 1.5px solid; }
+.pill-pts { background: #FFF1CF; border-color: var(--saffron-deep); color: #7A5200; font-variant-numeric: tabular-nums; }
+.pill-open { background: #DCEEFA; border-color: var(--sky-deep); color: var(--sky-ink); }
+.pill-done { background: var(--ok-bg); border-color: var(--ok); color: #1F5C28; }
+.pill-locked { background: #ECE5D3; border-color: #A89A7C; color: #5F5340; }
+.stage-card.is-locked .stage-art { filter: grayscale(.9); opacity: .7; }
+.stage-card .btn { margin-top: 4px; width: 100%; }
+.lock-note { font-size: .88rem; color: var(--ink-soft); }
+.map-extra { margin-top: 18px; display: flex; justify-content: center; }
+.fact { margin-top: 20px; background: var(--hint-bg); border: 2px solid var(--saffron-deep); border-radius: var(--radius); padding: 12px 16px; display: grid; gap: 2px; }
+.fact b { font-family: var(--font-display); font-weight: 400; font-size: 1.2rem; color: #7A5200; }
+
+/* ---------- شاشة المرحلة ---------- */
+.stage-top { display: flex; align-items: end; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap; margin: 20px 0 6px; padding-bottom: 14px; border-bottom: 6px solid transparent; border-image: none; background: linear-gradient(var(--line), var(--line)) bottom / 100% 2px no-repeat; }
+.dots { display: flex; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.dots li { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: .95rem; border: 2px solid var(--line); background: var(--card); color: var(--ink-soft); }
+.dots li.now { border-color: var(--sky-deep); background: var(--sky-deep); color: #fff; }
+.dots li.done { border-color: var(--ok); background: var(--ok-bg); color: var(--ok); }
+.act-head { margin: 14px 0 10px; display: grid; gap: 2px; }
+.act-intro { color: var(--ink-soft); }
+.stage-body { display: grid; gap: 14px; }
+
+.qpanel { background: var(--card); border: 2px solid var(--earth); border-radius: var(--radius); box-shadow: 0 5px 0 rgba(122, 74, 43, .3); padding: 16px; display: grid; gap: 14px; animation: enter .35s ease both; }
+.qmeta { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: .9rem; font-weight: 700; }
+.qtag { background: var(--sky-deep); color: #fff; padding: 1px 14px; border-radius: 999px; }
+.qtag.riddle { background: var(--saffron); color: var(--ink); }
+.qcount { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.qvisual { display: grid; place-items: center; background: linear-gradient(180deg, #E6F3FA, #F6EBCD); border: 2px solid var(--line); border-radius: 14px; padding: 8px; }
+.qvisual svg { height: 140px; width: auto; max-width: 100%; }
+.qtext { font-size: 1.4rem; color: var(--ink); font-family: var(--font-body); font-weight: 800; line-height: 1.55; }
+.options { display: grid; gap: 10px; grid-template-columns: 1fr; }
+@media (min-width: 600px) { .options { grid-template-columns: 1fr 1fr; } .options-tf { grid-template-columns: 1fr 1fr; } }
+.opt { font: inherit; font-weight: 700; font-size: 1.05rem; text-align: start; min-height: 56px; padding: 8px 14px; border: 2px solid var(--line); border-radius: 14px; background: #fff; color: var(--ink); cursor: pointer; display: flex; align-items: center; gap: 12px; transition: transform .12s, border-color .15s, background .15s; }
+.opt:hover:not([disabled]) { border-color: var(--sky-deep); background: #F2F9FD; transform: translateY(-1px); }
+.opt-letter { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--sand); border: 1.5px solid var(--line); font-weight: 800; }
+.opt.correct { border-color: var(--ok); background: var(--ok-bg); animation: pop .45s ease; }
+.opt.correct .opt-letter { background: var(--ok); color: #fff; border-color: var(--ok); }
+.opt.wrong { border-color: var(--bad); background: var(--bad-bg); animation: shake .4s ease; opacity: .9; }
+.opt.revealed { outline: 3px dashed var(--ok); outline-offset: 2px; }
+.opt[disabled] { cursor: default; }
+.is-locked { pointer-events: none; }
+@keyframes pop { 40% { transform: scale(1.04); } }
+@keyframes shake { 20% { transform: translateX(6px); } 40% { transform: translateX(-6px); } 60% { transform: translateX(4px); } 80% { transform: translateX(-3px); } }
+.shake { animation: shake .4s ease; }
+
+.fb { border-radius: 14px; padding: 10px 14px; border: 2px solid; display: grid; gap: 2px; }
+.fb[hidden] { display: none; }
+.fb b { font-weight: 800; }
+.fb-ok { background: var(--ok-bg); border-color: var(--ok); }
+.fb-hint { background: var(--hint-bg); border-color: var(--saffron-deep); }
+.fb-reveal { background: var(--bad-bg); border-color: var(--bad); }
+.next-row { display: flex; justify-content: flex-end; }
+.next-row[hidden] { display: none; }
+
+/* خريطة الاختيار */
+.zonewrap svg { display: block; width: 100%; height: auto; border-radius: 14px; background: #E6F3FA; border: 2px solid var(--line); }
+.zone { cursor: pointer; }
+.zone rect { fill: #CDE3A4; stroke: #fff; stroke-width: 3; transition: fill .15s; }
+.zone:nth-of-type(2) rect { fill: #D9E8B0; }
+.zone:hover rect { fill: #F0D77A; }
+.zone:focus-visible { outline: none; }
+.zone:focus-visible rect { stroke: var(--sky-deep); stroke-width: 6; }
+.zone text { font-family: var(--font-body); font-weight: 800; font-size: 24px; fill: var(--ink); pointer-events: none; }
+.zonemap .ub { font-size: 18px; font-weight: 700; fill: var(--red); }
+.zone.correct rect { fill: #8FD08A; }
+.zone.wrong rect { fill: #F3B3A6; }
+.zone.revealed rect { fill: #8FD08A; stroke: var(--ok); stroke-dasharray: 10 6; }
+.is-locked .zone { cursor: default; }
+
+/* الترتيب */
+.order-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; counter-reset: ord; }
+.order-item { counter-increment: ord; display: flex; align-items: center; gap: 10px; background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 8px 10px; min-height: 64px; transition: border-color .15s, background .15s; }
+.order-item::before { content: counter(ord); flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--sky-deep); color: #fff; font-weight: 800; }
+.order-item .otext { flex: 1; font-weight: 700; min-width: 0; }
+.order-item .grip { flex: none; width: 40px; height: 44px; display: grid; place-items: center; cursor: grab; touch-action: none; color: var(--ink-soft); border-radius: 10px; background: var(--sand); border: 1.5px solid var(--line); }
+.order-item .mv { flex: none; width: 40px; height: 44px; font: inherit; font-weight: 800; border-radius: 10px; border: 1.5px solid var(--line); background: var(--sand); color: var(--ink); cursor: pointer; }
+.order-item .mv:hover { background: var(--sand-deep); }
+.order-item.dragging { border-color: var(--sky-deep); box-shadow: 0 8px 18px rgba(0,0,0,.2); background: #F2F9FD; position: relative; z-index: 2; }
+.order-item.right { border-color: var(--ok); background: var(--ok-bg); }
+.order-item.off { border-color: var(--saffron-deep); background: var(--hint-bg); }
+.is-locked .grip, .is-locked .mv { opacity: .4; }
+
+/* المطابقة */
+.match { display: grid; gap: 14px; grid-template-columns: 1fr; }
+@media (min-width: 700px) { .match { grid-template-columns: 1.4fr 1fr; } }
+.match-pics { display: grid; gap: 10px; grid-template-columns: repeat(2, 1fr); }
+@media (min-width: 900px) { .match-pics { grid-template-columns: repeat(3, 1fr); } }
+.match-names { display: grid; gap: 10px; align-content: start; }
+.pic { position: relative; font: inherit; padding: 8px; border: 2px solid var(--line); border-radius: 14px; background: linear-gradient(180deg, #E6F3FA, #F6EBCD); cursor: pointer; display: grid; place-items: center; min-height: 118px; }
+.pic svg { width: 100%; height: 92px; }
+.pic .pic-n { position: absolute; inset-block-start: 6px; inset-inline-start: 6px; width: 26px; height: 26px; border-radius: 50%; background: var(--card); border: 1.5px solid var(--earth); display: grid; place-items: center; font-weight: 800; font-size: .85rem; }
+.pic:hover:not([disabled]) { border-color: var(--sky-deep); }
+.pic.sel, .nm.sel { border-color: var(--sky-deep); box-shadow: 0 0 0 4px rgba(31, 110, 156, .25); }
+.pic.matched, .nm.matched { border-color: var(--ok); background: var(--ok-bg); }
+.pic.matched svg { opacity: .9; }
+.pic.revealed, .nm.revealed { border-color: var(--saffron-deep); background: var(--hint-bg); }
+.nm { font: inherit; font-weight: 700; min-height: 52px; padding: 6px 12px; border: 2px solid var(--line); border-radius: 14px; background: #fff; color: var(--ink); cursor: pointer; text-align: center; }
+.nm:hover:not([disabled]) { border-color: var(--sky-deep); }
+.pic[disabled], .nm[disabled] { cursor: default; }
+.match-info { display: grid; gap: 10px; }
+.info-card { background: var(--card); border: 2px solid var(--ok); border-radius: 14px; padding: 10px 14px; animation: enter .35s ease both; }
+.info-card.revealed { border-color: var(--saffron-deep); }
+.info-card b { display: block; font-family: var(--font-display); font-weight: 400; font-size: 1.2rem; color: var(--grass-deep); }
+
+/* الصوت */
+.sound { display: grid; gap: 8px; background: #F2F9FD; border: 2px solid var(--line); border-radius: 14px; padding: 12px; }
+.sound-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.sound .btn { min-height: 48px; }
+.sound-desc { background: var(--hint-bg); border: 1.5px solid var(--saffron-deep); border-radius: 10px; padding: 6px 12px; font-size: .95rem; }
+.sound-desc[hidden] { display: none; }
+.sound-note { font-size: .85rem; color: var(--ink-soft); }
+.wave { display: inline-flex; gap: 3px; align-items: center; height: 24px; }
+.wave i { width: 4px; background: var(--sky-deep); border-radius: 2px; height: 6px; }
+.playing .wave i { animation: wv 0.9s ease-in-out infinite; }
+.playing .wave i:nth-child(2) { animation-delay: .15s; }
+.playing .wave i:nth-child(3) { animation-delay: .3s; }
+.playing .wave i:nth-child(4) { animation-delay: .45s; }
+@keyframes wv { 50% { height: 22px; } }
+
+/* رحلة الصحراء */
+.journey { position: relative; height: 150px; border-radius: 16px; overflow: hidden; border: 2px solid var(--earth); }
+.journey-bg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.oasis { position: absolute; left: 2%; bottom: 6px; width: 15%; }
+.camel { position: absolute; bottom: 8px; width: 19%; right: 2%; transition: right .9s ease-in-out; }
+.camel svg, .oasis svg { display: block; width: 100%; height: auto; }
+.camel.walking svg { animation: sway .45s ease-in-out 2; transform-origin: 50% 100%; }
+@keyframes sway { 50% { transform: rotate(-3deg) translateY(-3px); } }
+
+/* بطاقة نهاية النشاط */
+.act-done { background: var(--card); border: 2px solid var(--ok); border-radius: var(--radius); padding: 20px; display: grid; gap: 12px; justify-items: center; text-align: center; box-shadow: 0 5px 0 rgba(47, 125, 58, .3); }
+.act-done h3 { color: var(--grass-deep); }
+
+/* ---------- النوافذ ---------- */
+.modal { position: fixed; inset: 0; z-index: 60; background: rgba(51, 38, 26, .55); display: grid; place-items: center; padding: 16px max(16px, env(safe-area-inset-right, 0px)) 16px max(16px, env(safe-area-inset-left, 0px)); overflow-y: auto; }
+.modal[hidden] { display: none; }
+.modal-card { width: min(100%, 560px); max-height: 100%; overflow-y: auto; background: var(--card); border: 3px solid var(--earth); border-radius: 22px; padding: 22px; display: grid; gap: 14px; box-shadow: 0 8px 0 rgba(0,0,0,.2); animation: enter .3s ease both; }
+.modal-small { width: min(100%, 440px); }
+.modal-wide { width: min(100%, 860px); }
+.modal-center { text-align: center; justify-items: center; }
+.modal-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.how, .facts-list { margin: 0; padding-inline-start: 1.3em; display: grid; gap: 6px; }
+.how b { color: var(--saffron-deep); }
+.stamp svg { width: 150px; height: 150px; animation: stampIn .7s cubic-bezier(.2,1.4,.4,1) both; }
+@keyframes stampIn { from { transform: scale(2.2) rotate(-18deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.earned { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.earned li { background: var(--ok-bg); border: 1.5px solid var(--ok); border-radius: 999px; padding: 1px 14px; font-weight: 700; font-size: .95rem; }
+.modal .fact { margin: 0; text-align: start; width: 100%; }
+
+/* ---------- شاشة النهاية والشهادة ---------- */
+.end { display: grid; gap: 16px; justify-items: center; text-align: center; padding-top: 24px; }
+.end-name { font-size: 1.2rem; }
+.end-stats { display: grid; gap: 12px; grid-template-columns: repeat(2, 1fr); width: min(100%, 640px); }
+@media (min-width: 640px) { .end-stats { grid-template-columns: repeat(4, 1fr); } }
+.stat { background: var(--card); border: 2px solid var(--earth); border-radius: 16px; padding: 10px 6px; box-shadow: 0 4px 0 rgba(122, 74, 43, .3); }
+.stat b { display: block; font-family: var(--font-display); font-weight: 400; font-size: 2rem; line-height: 1.1; color: var(--sky-ink); font-variant-numeric: tabular-nums; }
+.stat span { font-size: .9rem; color: var(--ink-soft); font-weight: 500; }
+.end-stamps { display: flex; gap: 6px 14px; flex-wrap: wrap; justify-content: center; }
+.end-stamps svg { width: 96px; height: 96px; }
+.end-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.cert-wrap { width: min(100%, 820px); margin-top: 8px; }
+
+.cert { background: #FFFBEA; color: var(--ink); border: 4px double var(--earth); border-radius: 12px; padding: 12px; }
+.cert-inner { border: 2px solid var(--saffron-deep); padding: 28px 18px; display: grid; gap: 12px; justify-items: center; text-align: center; background-image: radial-gradient(circle at 50% 0, rgba(227,164,31,.12), transparent 60%); }
+.cert-border { width: 100%; height: 14px; background-repeat: repeat-x; background-size: 28px 14px; background-position: center; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='14' viewBox='0 0 28 14'%3E%3Cpath d='M0 12H6V2H20V12H28' fill='none' stroke='%237A4A2B' stroke-width='2'/%3E%3C/svg%3E"); }
+.cert h2 { font-size: clamp(1.8rem, 5vw, 2.8rem); color: var(--sky-ink); }
+.cert-to { font-weight: 700; color: var(--ink-soft); }
+.cert-name { font-family: var(--font-display); font-size: clamp(2rem, 6vw, 3rem); color: var(--red); line-height: 1.2; overflow-wrap: anywhere; }
+.cert-text { max-width: 34em; }
+.cert-stamps { display: flex; gap: 6px 10px; flex-wrap: wrap; justify-content: center; }
+.cert-stamps svg { width: 64px; height: 64px; }
+.cert-foot { display: flex; gap: 8px 24px; flex-wrap: wrap; justify-content: center; font-weight: 700; color: var(--ink-soft); font-size: .95rem; }
+.cert-tip { font-weight: 700; background: var(--hint-bg); border: 2px solid var(--saffron-deep); border-radius: 12px; padding: 8px 14px; }
+
+.foot { position: relative; z-index: 1; text-align: center; font-size: .85rem; color: var(--ink-soft); padding-block: 8px 28px; }
+
+/* ---------- المؤثرات ---------- */
+#fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 80; }
+#float-layer { position: fixed; inset: 0; pointer-events: none; z-index: 85; overflow: hidden; }
+.float-pts { position: fixed; transform: translate(-50%, 0); font-family: var(--font-display); font-size: 1.9rem; color: var(--ok); text-shadow: 0 2px 0 #fff, 0 0 8px #fff; animation: rise 1.2s ease-out forwards; }
+@keyframes rise { from { opacity: 1; transform: translate(-50%, 0); } to { opacity: 0; transform: translate(-50%, -70px); } }
+
+@media (max-width: 520px) {
+  body { font-size: 16px; }
+  .hud { padding: 8px 10px 10px; }
+  .hud-actions { width: 100%; margin-inline-start: 0; }
+  .hud-actions .hud-btn { flex: 1; }
+  .qtext { font-size: 1.25rem; }
+  .bubble { max-width: 60%; font-size: .85rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+/* الطباعة: تظهر الشهادة فقط */
+@media print {
+  body { background: #fff; padding: 0; }
+  body::before, .scenery, .hud, .main > .screen, .foot, .modal-card > :not(.cert), #fx, #float-layer { display: none !important; }
+  .modal { position: static; background: none; display: block !important; padding: 0; }
+  .modal[hidden] { display: none !important; }
+  .modal-card { border: 0; box-shadow: none; padding: 0; width: 100%; }
+  .modal-cert .cert { display: block !important; }
+}
+
+</style>
+
+<div class="app" id="app" dir="rtl" lang="ar">
+
+  <div class="scenery" aria-hidden="true">
+    <svg viewBox="0 0 1200 200" preserveAspectRatio="none" focusable="false">
+      <path d="M0 110 Q150 50 300 100 T600 90 T900 80 T1200 100 V200 H0Z" fill="#B7D08A"/>
+      <path d="M0 150 Q200 100 400 140 T800 130 T1200 140 V200 H0Z" fill="#8FB863"/>
+      <path d="M0 180 Q250 150 500 175 T1000 170 T1200 175 V200 H0Z" fill="#6E9F4B"/>
+    </svg>
+  </div>
+
+  <!-- شريط النقاط والتقدم -->
+  <header class="hud" id="hud" hidden>
+    <div class="hud-row">
+      <div class="hud-score" aria-live="polite">
+        <svg viewBox="0 0 24 24" class="hud-star" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.3 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z" fill="#E3A41F" stroke="#B87D0A" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        <span class="hud-num" id="hud-points">0</span>
+        <span class="hud-unit">نقطة</span>
+      </div>
+      <div class="hud-chips">
+        <span class="chip">إجابات صحيحة <b id="hud-correct">0</b></span>
+        <span class="chip">الأختام <b id="hud-stamps">0/4</b></span>
+      </div>
+      <div class="hud-actions">
+        <button class="hud-btn" id="hud-map" type="button">الخريطة</button>
+        <button class="hud-btn" id="hud-home" type="button">الرئيسية</button>
+        <button class="hud-btn hud-btn-danger" id="hud-reset" type="button">من البداية</button>
+      </div>
+    </div>
+    <div class="hud-progress">
+      <span>المراحل المكتملة <b id="hud-stages">0 من 4</b></span>
+      <div class="bar" role="progressbar" aria-label="المراحل المكتملة" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0" id="hud-barwrap"><i id="hud-bar"></i></div>
+    </div>
+  </header>
+
+  <main class="main">
+
+    <!-- الصفحة الرئيسية -->
+    <section class="screen" id="screen-home" aria-labelledby="home-title">
+      <div class="home">
+        <div class="home-text">
+          <p class="kicker">Mongolia Exploration Game</p>
+          <h1 id="home-title" tabindex="-1">مرحبًا بكِ في رحلة استكشاف منغوليا!</h1>
+          <p class="lead">استعدّي لاكتشاف دولة مميزة تمتد فيها السهول الواسعة، وتعيش فيها الخيول بين الطبيعة، وتحافظ فيها الشعوب على عاداتها وتقاليدها القديمة.</p>
+
+          <div class="name-field">
+            <label for="player-name">اسم المستكشفة (اختياري)</label>
+            <input id="player-name" type="text" maxlength="20" autocomplete="off" placeholder="اكتبي اسمك أو لقبك">
+          </div>
+
+          <div class="home-actions">
+            <button class="btn btn-primary btn-xl" id="btn-start" type="button">ابدئي الرحلة</button>
+            <button class="btn" id="btn-how" type="button">طريقة اللعب</button>
+            <button class="btn" id="btn-info" type="button">معلومات عن منغوليا</button>
+          </div>
+
+          <ul class="home-stages" aria-label="المراحل الأربع">
+            <li><b>4</b> مراحل</li>
+            <li>التاريخ</li>
+            <li>المعالم</li>
+            <li>الثقافة</li>
+            <li>الطبيعة</li>
+          </ul>
+        </div>
+        <div class="home-art">
+          <div id="home-map"></div>
+          <div class="home-explorer" id="home-explorer"></div>
+          <p class="bubble">أنا رفيقتك في الرحلة. هيا نبدأ!</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- خريطة اللعبة -->
+    <section class="screen" id="screen-map" aria-labelledby="map-title" hidden>
+      <div class="screen-head">
+        <h2 id="map-title" tabindex="-1">خريطة الرحلة</h2>
+        <p class="sub">تبدأ الرحلة من الشرق وتتجه غربًا. تُفتح كل محطة بعد إكمال التي قبلها.</p>
+      </div>
+      <div class="mapboard" id="mapboard"></div>
+      <div class="stage-grid" id="stage-grid"></div>
+      <div class="map-extra" id="map-extra"></div>
+      <aside class="fact" id="map-fact"></aside>
+    </section>
+
+    <!-- شاشة المرحلة -->
+    <section class="screen" id="screen-stage" aria-labelledby="stage-title" hidden>
+      <div class="stage-top">
+        <div>
+          <p class="kicker" id="stage-topic"></p>
+          <h2 id="stage-title" tabindex="-1"></h2>
+        </div>
+        <ol class="dots" id="act-dots" aria-label="أنشطة المرحلة"></ol>
+      </div>
+      <div class="act-head">
+        <h3 id="act-title"></h3>
+        <p id="act-intro" class="act-intro"></p>
+      </div>
+      <div id="stage-body" class="stage-body"></div>
+    </section>
+
+    <!-- شاشة النهاية -->
+    <section class="screen" id="screen-end" aria-labelledby="end-title" hidden>
+      <div class="end">
+        <p class="kicker">اكتملت الرحلة</p>
+        <h2 id="end-title" tabindex="-1">مبروك! لقد أكملتِ رحلة استكشاف منغوليا</h2>
+        <p class="end-name">المستكشفة: <b id="end-name"></b></p>
+        <div class="end-stats" id="end-stats"></div>
+        <div class="end-stamps" id="end-stamps"></div>
+        <div class="end-actions">
+          <button class="btn btn-primary btn-xl" id="btn-cert" type="button">عرض الشهادة للطباعة</button>
+          <button class="btn btn-xl" id="btn-again" type="button">العبِي مرة أخرى</button>
+        </div>
+        <div class="cert-wrap">
+          <div class="cert" id="cert-inline"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>لعبة تعليمية لطالبات المرحلة الثانوية. لا تحتاج إلى تسجيل دخول ولا تجمع أي بيانات شخصية.</p>
+  </footer>
+
+  <!-- النوافذ -->
+  <div class="modal" id="modal-how" role="dialog" aria-modal="true" aria-labelledby="how-title" hidden>
+    <div class="modal-card">
+      <h2 id="how-title">طريقة اللعب</h2>
+      <ol class="how">
+        <li>اضغطي «ابدئي الرحلة» لتنتقلي إلى خريطة منغوليا.</li>
+        <li>اختاري المحطة المتاحة وابدئي التحدي. كل محطة فيها عدة أنشطة.</li>
+        <li>كل إجابة صحيحة من أول محاولة تمنحك <b>10 نقاط</b>، وحل اللغز يمنحك <b>15 نقطة</b>.</li>
+        <li>إذا أخطأتِ في المحاولة الأولى فلن تُخصم نقاط، وسيظهر لك تلميح لتحاولي مرة ثانية.</li>
+        <li>إكمال كل نشاط يمنحك <b>20 نقطة</b> إضافية، وإكمال المرحلة يمنحك <b>100 نقطة</b> وختمًا جديدًا.</li>
+        <li>اجمعي الأختام الأربعة لتحصلي على شهادة «مستكشفة منغوليا».</li>
+      </ol>
+      <button class="btn btn-primary" type="button" data-close data-autofocus>فهمت، هيا نلعب</button>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-info" role="dialog" aria-modal="true" aria-labelledby="info-title" hidden>
+    <div class="modal-card">
+      <h2 id="info-title">معلومات عن منغوليا</h2>
+      <ul class="facts-list" id="info-list"></ul>
+      <button class="btn btn-primary" type="button" data-close data-autofocus>إغلاق</button>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-confirm" role="dialog" aria-modal="true" aria-labelledby="confirm-title" hidden>
+    <div class="modal-card modal-small">
+      <h2 id="confirm-title"></h2>
+      <p id="confirm-text"></p>
+      <div class="modal-actions">
+        <button class="btn btn-danger" type="button" id="confirm-yes"></button>
+        <button class="btn" type="button" data-close data-autofocus>إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-stage" role="dialog" aria-modal="true" aria-labelledby="ms-title" hidden>
+    <div class="modal-card modal-center" id="ms-card"></div>
+  </div>
+
+  <div class="modal modal-cert" id="modal-cert" role="dialog" aria-modal="true" aria-labelledby="cert-title" hidden>
+    <div class="modal-card modal-wide">
+      <p class="cert-tip" id="cert-title">لحفظ الشهادة، التقطي لقطة شاشة لها، أو اطبعيها من قائمة المتصفح.</p>
+      <div class="cert" id="cert-full"></div>
+      <button class="btn btn-primary" type="button" data-close data-autofocus>إغلاق</button>
+    </div>
+  </div>
+
+  <canvas id="fx" aria-hidden="true"></canvas>
+  <div id="float-layer" aria-hidden="true"></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  document.documentElement.lang = 'ar';
+  document.documentElement.dir = 'rtl';
+
+  /* ============ أدوات صغيرة ============ */
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  function h(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function hh(tag, cls, markup) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    n.innerHTML = markup;
+    return n;
+  }
+  function shuffle(a) {
+    var b = a.slice();
+    for (var i = b.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = b[i]; b[i] = b[j]; b[j] = t;
+    }
+    return b;
+  }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var LETTERS = ['أ', 'ب', 'ج', 'د'];
+
+  /* ============ الرسومات ============ */
+  var C = {
+    sky: '#9ED3EC', blue: '#1F6E9C', grass: '#7BAA55', grassDeep: '#3E6B3A',
+    sand: '#F0E1BE', sandDeep: '#D9BF8A', earth: '#7A4A2B', ink: '#33261A',
+    saffron: '#E3A41F', red: '#B63E2B', white: '#FBF7EC'
+  };
+  var OUTLINE = 'M30 170 L90 110 L180 95 L250 60 L340 70 L430 45 L540 75 L640 95 L720 110 L770 150 L740 190 L760 230 L690 270 L600 290 L520 330 L420 350 L320 330 L240 345 L160 300 L90 270 L40 230 Z';
+
+  function horseG(body, mane) {
+    return '<g>' +
+      '<rect x="34" y="40" width="6" height="24" rx="3" fill="' + body + '"/>' +
+      '<rect x="44" y="40" width="6" height="24" rx="3" fill="' + body + '"/>' +
+      '<rect x="68" y="40" width="6" height="24" rx="3" fill="' + body + '"/>' +
+      '<rect x="78" y="40" width="6" height="24" rx="3" fill="' + body + '"/>' +
+      '<ellipse cx="58" cy="32" rx="28" ry="12" fill="' + body + '"/>' +
+      '<path d="M36 28 Q30 14 22 8 L12 14 Q8 19 13 23 Q22 26 30 38 Z" fill="' + body + '"/>' +
+      '<path d="M30 12 Q36 8 40 18 Q35 24 30 30 Z" fill="' + mane + '"/>' +
+      '<path d="M84 26 Q98 30 94 50 Q89 38 82 36 Z" fill="' + mane + '"/>' +
+      '<circle cx="17" cy="15" r="1.6" fill="#33261A"/>' +
+      '</g>';
+  }
+
+  var ART = {
+    explorer: function () {
+      return '<svg viewBox="0 0 120 170" role="img" aria-label="المستكشفة">' +
+        '<ellipse cx="60" cy="164" rx="34" ry="5" fill="#00000022"/>' +
+        '<rect x="28" y="90" width="22" height="44" rx="10" fill="' + C.earth + '"/>' +
+        '<rect x="44" y="136" width="12" height="24" rx="5" fill="#4C3A2A"/>' +
+        '<rect x="64" y="136" width="12" height="24" rx="5" fill="#4C3A2A"/>' +
+        '<ellipse cx="50" cy="161" rx="11" ry="5" fill="' + C.ink + '"/>' +
+        '<ellipse cx="70" cy="161" rx="11" ry="5" fill="' + C.ink + '"/>' +
+        '<path d="M38 94 Q60 84 82 94 L86 140 H34 Z" fill="' + C.grassDeep + '"/>' +
+        '<rect x="30" y="98" width="12" height="32" rx="6" fill="' + C.grassDeep + '"/>' +
+        '<rect x="78" y="98" width="12" height="32" rx="6" fill="' + C.grassDeep + '"/>' +
+        '<circle cx="36" cy="132" r="6" fill="#F1C9A0"/><circle cx="84" cy="132" r="6" fill="#F1C9A0"/>' +
+        '<rect x="46" y="112" width="28" height="12" rx="4" fill="' + C.saffron + '"/>' +
+        '<path d="M38 60 Q36 86 44 90 L46 62 Z M82 60 Q84 86 76 90 L74 62 Z" fill="#4C3A2A"/>' +
+        '<circle cx="60" cy="68" r="22" fill="#F1C9A0"/>' +
+        '<circle cx="52" cy="69" r="2.6" fill="' + C.ink + '"/><circle cx="68" cy="69" r="2.6" fill="' + C.ink + '"/>' +
+        '<path d="M53 77 Q60 83 67 77" stroke="' + C.ink + '" stroke-width="2.2" fill="none" stroke-linecap="round"/>' +
+        '<circle cx="46" cy="76" r="3.4" fill="#F0A58F" opacity=".7"/><circle cx="74" cy="76" r="3.4" fill="#F0A58F" opacity=".7"/>' +
+        '<path d="M40 88 Q60 102 80 88 L80 97 Q60 111 40 97 Z" fill="' + C.blue + '"/>' +
+        '<path d="M72 98 L86 122 L76 125 L66 102 Z" fill="' + C.blue + '"/>' +
+        '<ellipse cx="60" cy="50" rx="40" ry="8" fill="' + C.earth + '"/>' +
+        '<path d="M37 50 Q39 25 60 25 Q81 25 83 50 Z" fill="#A56A3C"/>' +
+        '<rect x="38" y="42" width="44" height="7" fill="' + C.saffron + '"/>' +
+        '</svg>';
+    },
+    ger: function () {
+      return '<svg viewBox="0 0 120 90" role="img" aria-label="خيمة منغولية تقليدية">' +
+        '<ellipse cx="60" cy="81" rx="52" ry="6" fill="#00000018"/>' +
+        '<path d="M8 46 L60 10 L112 46 Z" fill="' + C.white + '" stroke="' + C.earth + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+        '<rect x="14" y="44" width="92" height="34" rx="3" fill="#F3EAD2" stroke="' + C.earth + '" stroke-width="2.5"/>' +
+        '<path d="M14 50 H106" stroke="' + C.blue + '" stroke-width="3" stroke-dasharray="6 4"/>' +
+        '<rect x="49" y="53" width="22" height="25" rx="2" fill="' + C.red + '" stroke="' + C.earth + '" stroke-width="2"/>' +
+        '<path d="M60 53 V78 M49 66 H71" stroke="' + C.saffron + '" stroke-width="2"/>' +
+        '<circle cx="60" cy="10" r="4" fill="' + C.saffron + '" stroke="' + C.earth + '" stroke-width="2"/>' +
+        '</svg>';
+    },
+    statue: function () {
+      return '<svg viewBox="0 0 120 100" role="img" aria-label="رسم لتمثال ضخم لفارس على حصان فوق قاعدة دائرية">' +
+        '<rect x="14" y="76" width="92" height="18" rx="4" fill="#8E8A82"/>' +
+        '<rect x="22" y="70" width="76" height="10" rx="3" fill="#A7A39A"/>' +
+        '<g transform="translate(8,6) scale(1)">' + horseG('#C3CAD1', '#8F98A1') + '</g>' +
+        '<path d="M60 34 L72 34 L70 50 L62 50 Z" fill="#AEB7BE"/>' +
+        '<circle cx="66" cy="28" r="6" fill="#C3CAD1"/>' +
+        '<path d="M70 38 L88 22" stroke="#8F98A1" stroke-width="3" stroke-linecap="round"/>' +
+        '</svg>';
+    },
+    monastery: function () {
+      return '<svg viewBox="0 0 120 100" role="img" aria-label="رسم لدير بوذي بأسوار بيضاء وأسقف ملونة">' +
+        '<rect x="0" y="82" width="120" height="18" fill="#B7D08A"/>' +
+        '<rect x="6" y="64" width="108" height="22" fill="' + C.white + '" stroke="' + C.earth + '" stroke-width="2"/>' +
+        '<g fill="' + C.white + '" stroke="' + C.earth + '" stroke-width="1.6">' +
+        '<path d="M12 64 L12 52 Q18 44 24 52 L24 64 Z"/><path d="M36 64 L36 52 Q42 44 48 52 L48 64 Z"/>' +
+        '<path d="M72 64 L72 52 Q78 44 84 52 L84 64 Z"/><path d="M96 64 L96 52 Q102 44 108 52 L108 64 Z"/></g>' +
+        '<rect x="46" y="44" width="28" height="24" fill="#F6E3B4" stroke="' + C.earth + '" stroke-width="2"/>' +
+        '<path d="M38 46 L60 26 L82 46 Z" fill="' + C.red + '" stroke="' + C.earth + '" stroke-width="2" stroke-linejoin="round"/>' +
+        '<path d="M44 30 L60 14 L76 30 Z" fill="' + C.saffron + '" stroke="' + C.earth + '" stroke-width="2" stroke-linejoin="round"/>' +
+        '<rect x="54" y="52" width="12" height="16" fill="' + C.red + '"/>' +
+        '</svg>';
+    },
+    gobi: function () {
+      return '<svg viewBox="0 0 160 100" role="img" aria-label="رسم لكثبان رملية تحت شمس صحراوية">' +
+        '<circle cx="124" cy="26" r="14" fill="#F3C74B"/>' +
+        '<path d="M0 70 Q40 30 80 62 T160 52 V100 H0Z" fill="#E6CB8E"/>' +
+        '<path d="M0 86 Q50 56 100 82 T160 76 V100 H0Z" fill="#D9B574"/>' +
+        '<path d="M0 96 Q60 80 110 94 T160 92 V100 H0Z" fill="#C79F5A"/>' +
+        '</svg>';
+    },
+    lake: function () {
+      return '<svg viewBox="0 0 120 100" role="img" aria-label="رسم لبحيرة زرقاء بين الجبال">' +
+        '<path d="M0 62 L24 30 L42 52 L64 22 L92 56 L106 40 L120 58 V70 H0Z" fill="#8FA7B8"/>' +
+        '<path d="M64 22 L72 34 L64 32 L58 36Z" fill="#fff"/>' +
+        '<rect y="62" width="120" height="38" fill="#4FA3CF"/>' +
+        '<path d="M12 78 Q22 74 32 78 M54 86 Q66 82 78 86 M84 72 Q94 68 104 72" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" opacity=".8"/>' +
+        '<path d="M6 64 L12 46 L18 64Z M16 64 L23 40 L30 64Z" fill="' + C.grassDeep + '"/>' +
+        '</svg>';
+    },
+    terelj: function () {
+      return '<svg viewBox="0 0 120 100" role="img" aria-label="رسم لتلال خضراء وصخرة كبيرة بين أشجار الصنوبر">' +
+        '<path d="M0 70 Q30 40 60 62 T120 56 V100 H0Z" fill="' + C.grass + '"/>' +
+        '<path d="M0 84 Q40 66 80 82 T120 78 V100 H0Z" fill="#5E9143"/>' +
+        '<path d="M40 76 Q38 46 62 44 Q86 44 84 76 Z" fill="#9B958B" stroke="#6E685F" stroke-width="2"/>' +
+        '<ellipse cx="60" cy="40" rx="9" ry="8" fill="#9B958B" stroke="#6E685F" stroke-width="2"/>' +
+        '<g fill="' + C.grassDeep + '"><path d="M8 80 L16 54 L24 80Z"/><path d="M96 82 L104 52 L112 82Z"/><path d="M24 84 L30 66 L36 84Z"/></g>' +
+        '</svg>';
+    },
+    buuz: function () {
+      return '<svg viewBox="0 0 120 100" role="img" aria-label="رسم لزلابية مطهوة على البخار">' +
+        '<ellipse cx="60" cy="88" rx="40" ry="6" fill="#00000018"/>' +
+        '<path d="M16 76 Q16 40 60 36 Q104 40 104 76 Q60 90 16 76Z" fill="#F7EBCB" stroke="' + C.earth + '" stroke-width="2.5"/>' +
+        '<path d="M60 36 Q58 22 66 18 M60 36 L40 40 M60 36 L80 40 M60 36 L28 52 M60 36 L92 52 M60 36 L22 66 M60 36 L98 66" stroke="' + C.earth + '" stroke-width="2" fill="none" stroke-linecap="round"/>' +
+        '<path d="M44 20 Q40 12 46 6 M70 18 Q66 10 72 4" stroke="#B9C7CF" stroke-width="3" fill="none" stroke-linecap="round"/>' +
+        '</svg>';
+    },
+    khuushuur: function () {
+      return '<svg viewBox="0 0 120 100" role="img" aria-label="رسم لفطيرة مقلية على شكل نصف دائرة">' +
+        '<ellipse cx="60" cy="86" rx="44" ry="6" fill="#00000018"/>' +
+        '<path d="M14 76 A46 46 0 0 1 106 76 Z" fill="#D9A152" stroke="' + C.earth + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+        '<path d="M14 76 H106" stroke="' + C.earth + '" stroke-width="5" stroke-dasharray="4 4"/>' +
+        '<path d="M32 62 Q40 42 62 38" stroke="#F0CF93" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+        '<circle cx="76" cy="54" r="3" fill="#B97F34"/><circle cx="88" cy="64" r="2.6" fill="#B97F34"/><circle cx="64" cy="62" r="2.4" fill="#B97F34"/>' +
+        '</svg>';
+    },
+    deel: function () {
+      return '<svg viewBox="0 0 120 130" role="img" aria-label="رسم لرداء طويل مطرز بحزام ملون">' +
+        '<path d="M44 12 L60 22 L76 12 L98 28 L104 120 H16 L22 28 Z" fill="' + C.blue + '" stroke="' + C.ink + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+        '<path d="M44 12 L60 22 L76 12" fill="none" stroke="' + C.saffron + '" stroke-width="5" stroke-linejoin="round"/>' +
+        '<path d="M60 22 L84 46 L84 120" fill="none" stroke="' + C.saffron + '" stroke-width="4" stroke-linejoin="round"/>' +
+        '<rect x="20" y="70" width="84" height="12" fill="' + C.red + '" stroke="' + C.ink + '" stroke-width="2"/>' +
+        '<g fill="' + C.saffron + '"><circle cx="86" cy="54" r="2.6"/><circle cx="86" cy="62" r="2.6"/></g>' +
+        '<path d="M16 120 H104" stroke="' + C.saffron + '" stroke-width="5"/>' +
+        '<path d="M22 28 L6 66 L18 72 L30 44 M98 28 L114 66 L102 72 L90 44" fill="' + C.blue + '" stroke="' + C.ink + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+        '</svg>';
+    },
+    camel: function () {
+      return '<svg viewBox="0 0 140 100" role="img" aria-label="جمل بكتيري بسنامين">' +
+        '<ellipse cx="72" cy="95" rx="46" ry="4" fill="#00000020"/>' +
+        '<rect x="42" y="62" width="9" height="32" rx="4" fill="#8B6A43"/><rect x="56" y="62" width="9" height="32" rx="4" fill="#8B6A43"/>' +
+        '<rect x="92" y="62" width="9" height="32" rx="4" fill="#8B6A43"/><rect x="106" y="62" width="9" height="32" rx="4" fill="#8B6A43"/>' +
+        '<ellipse cx="80" cy="58" rx="38" ry="18" fill="#B98F5C"/>' +
+        '<ellipse cx="68" cy="42" rx="11" ry="14" fill="#C9A06A"/><ellipse cx="94" cy="42" rx="11" ry="14" fill="#C9A06A"/>' +
+        '<path d="M46 58 Q30 52 28 32 Q28 22 34 20 L45 22 Q42 36 54 48 Z" fill="#B98F5C"/>' +
+        '<ellipse cx="30" cy="22" rx="13" ry="8" fill="#C9A06A" transform="rotate(-12 30 22)"/>' +
+        '<circle cx="26" cy="19" r="1.9" fill="' + C.ink + '"/>' +
+        '<path d="M116 54 Q128 60 124 80" stroke="#8B6A43" stroke-width="4" fill="none" stroke-linecap="round"/>' +
+        '</svg>';
+    },
+    przewalski: function () {
+      return '<svg viewBox="0 0 110 70" role="img" aria-label="حصان بري قصير القامة ذو عرف قائم">' +
+        horseG('#C9A36B', '#4C3A2A') + '</svg>';
+    },
+    palm: function () {
+      return '<svg viewBox="0 0 100 100" role="img" aria-label="واحة بنخلة وبركة ماء">' +
+        '<ellipse cx="50" cy="88" rx="42" ry="9" fill="#5FB2D6"/>' +
+        '<path d="M50 86 Q45 60 52 36" stroke="' + C.earth + '" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+        '<path d="M52 36 Q30 24 14 36 Q34 30 52 38 M52 36 Q70 22 88 34 Q70 30 52 38 M52 36 Q48 14 36 8 Q50 18 54 36 M52 36 Q58 12 74 8 Q60 18 54 38" fill="' + C.grassDeep + '" stroke="' + C.grassDeep + '" stroke-width="3" stroke-linejoin="round"/>' +
+        '</svg>';
+    },
+    mapHome: function () {
+      return '<svg viewBox="0 0 800 420" role="img" aria-label="خريطة مبسطة لمنغوليا">' +
+        '<defs>' +
+        '<linearGradient id="hmSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#BFE3F4"/><stop offset="1" stop-color="#F6EBCB"/></linearGradient>' +
+        '<clipPath id="hmClip"><path d="' + OUTLINE + '"/></clipPath>' +
+        '</defs>' +
+        '<rect width="800" height="420" fill="url(#hmSky)"/>' +
+        '<circle cx="700" cy="60" r="32" fill="#F3C74B"/>' +
+        '<g fill="#fff" opacity=".9"><ellipse cx="120" cy="50" rx="52" ry="16"/><ellipse cx="160" cy="40" rx="34" ry="14"/><ellipse cx="520" cy="30" rx="44" ry="13"/></g>' +
+        '<path d="M0 400 L0 330 L90 250 L150 310 L240 220 L330 330 L330 400Z" fill="#9FB8A2" opacity=".55"/>' +
+        '<g transform="translate(0,10)">' +
+        '<path d="' + OUTLINE + '" fill="#9CC46B" stroke="' + C.grassDeep + '" stroke-width="6" stroke-linejoin="round"/>' +
+        '<g clip-path="url(#hmClip)">' +
+        '<path d="M120 270 Q300 235 480 270 T800 270 V400 H120Z" fill="#EBD59B"/>' +
+        '<ellipse cx="380" cy="82" rx="26" ry="12" fill="#5FB2D6"/>' +
+        '<path d="M150 150 L190 100 L230 150Z M205 150 L250 90 L295 150Z" fill="#7B9A6A"/>' +
+        '</g>' +
+        '<path d="M600 190 Q520 120 420 170 T250 210" stroke="' + C.earth + '" stroke-width="4" stroke-dasharray="3 12" stroke-linecap="round" fill="none"/>' +
+        '<circle cx="420" cy="170" r="7" fill="' + C.red + '" stroke="#fff" stroke-width="3"/>' +
+        '<g transform="translate(560,160) scale(.6)"><path d="M8 46 L60 10 L112 46 Z" fill="#fff" stroke="' + C.earth + '" stroke-width="4"/><rect x="14" y="44" width="92" height="34" fill="#F3EAD2" stroke="' + C.earth + '" stroke-width="4"/><rect x="49" y="53" width="22" height="25" fill="' + C.red + '"/></g>' +
+        '<g transform="translate(200,170) scale(.6)"><path d="M8 46 L60 10 L112 46 Z" fill="#fff" stroke="' + C.earth + '" stroke-width="4"/><rect x="14" y="44" width="92" height="34" fill="#F3EAD2" stroke="' + C.earth + '" stroke-width="4"/><rect x="49" y="53" width="22" height="25" fill="' + C.red + '"/></g>' +
+        '<text x="400" y="320" text-anchor="middle" font-family="Lalezar, Tajawal, sans-serif" font-size="46" fill="' + C.earth + '" opacity=".9">منغوليا</text>' +
+        '</g></svg>';
+    }
+  };
+
+  /* ============ خريطة الاختيار ============ */
+  var ZONE_NAMES = { north: 'الشمال', south: 'الجنوب', east: 'الشرق', west: 'الغرب', center: 'الوسط (حول أولان باتور)' };
+  var ZONE_SHORT = { north: 'الشمال', south: 'الجنوب', east: 'الشرق', west: 'الغرب', center: 'الوسط' };
+  function zoneMapSVG(id) {
+    function z(key, x, y, w, hh2, tx, ty) {
+      return '<g class="zone" data-zone="' + key + '" role="button" tabindex="0" aria-label="' + ZONE_NAMES[key] + '">' +
+        '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + hh2 + '"/>' +
+        '<text x="' + tx + '" y="' + ty + '" text-anchor="middle">' + ZONE_SHORT[key] + '</text></g>';
+    }
+    return '<svg class="zonemap" viewBox="0 0 800 400" role="group" aria-label="خريطة مبسطة لمنغوليا، اختاري المنطقة">' +
+      '<defs><clipPath id="clip-' + id + '"><path d="' + OUTLINE + '"/></clipPath></defs>' +
+      '<g clip-path="url(#clip-' + id + ')">' +
+      z('west', 0, 0, 230, 400, 125, 215) +
+      z('east', 610, 0, 190, 400, 705, 215) +
+      z('north', 230, 0, 380, 150, 420, 118) +
+      z('south', 230, 250, 380, 150, 420, 305) +
+      z('center', 230, 150, 380, 100, 420, 238) +
+      '</g>' +
+      '<path d="' + OUTLINE + '" fill="none" stroke="#3E6B3A" stroke-width="5" stroke-linejoin="round" pointer-events="none"/>' +
+      '<g pointer-events="none"><circle cx="420" cy="196" r="7" fill="#B63E2B" stroke="#fff" stroke-width="2.5"/>' +
+      '<text class="ub" x="420" y="186" text-anchor="middle">أولان باتور</text></g>' +
+      '</svg>';
+  }
+
+  /* ============ البيانات ============ */
+  var FACTS = [
+    'منغوليا دولة غير ساحلية تقع بين روسيا والصين.',
+    'عاصمة منغوليا هي أولان باتور.',
+    'تشتهر منغوليا بالسهول الواسعة والحياة الرعوية.',
+    'صحراء غوبي من أشهر المعالم الطبيعية في منغوليا.',
+    'يُعد مهرجان نادام من أبرز المهرجانات التقليدية في منغوليا، ويضم المصارعة وسباق الخيل والرماية.',
+    'للخيل مكانة مهمة في الثقافة المنغولية، وقد ارتبطت بحياة الرعاة وبالفروسية منذ القدم.',
+    'الخيمة التقليدية المنغولية تُعرف باسم Ger، ويمكن تفكيكها ونقلها عند الترحال.'
+  ];
+  var factIdx = 0;
+  function nextFact() { var f = FACTS[factIdx % FACTS.length]; factIdx++; return f; }
+
+  var INFO = [
+    'الموقع: دولة في شرق آسيا، تقع بين روسيا شمالًا والصين جنوبًا.',
+    'العاصمة: أولان باتور، وهي أكبر مدن البلاد.',
+    'لا تطل منغوليا على أي بحر، لذلك تُعد دولة غير ساحلية.',
+    'اللغة الرسمية: المنغولية، والعملة: التوغروغ.',
+    'تضم السهول الواسعة والجبال والبحيرات وصحراء غوبي في الجنوب.',
+    'مناخها قاري، فالصيف دافئ والشتاء شديد البرودة.',
+    'تشتهر بتربية الخيول والإبل والأغنام، وبخيام الـ Ger وبمهرجان نادام.'
+  ];
+
+  var STAGES = [
+    {
+      key: 'history', name: 'بوابة الزمن', topic: 'المرحلة الأولى: التاريخ',
+      desc: 'اعبري بوابة الزمن وتعرّفي إلى جنكيز خان وقصة الإمبراطورية المغولية.',
+      stamp: ['مستكشفة', 'التاريخ'], art: 'ger',
+      congrats: 'عبرتِ بوابة الزمن بنجاح، وصرتِ تعرفين كيف بدأت الإمبراطورية المغولية.',
+      activities: [
+        {
+          type: 'quiz', title: 'النشاط الأول: أسئلة اختيار من متعدد',
+          intro: 'سؤال واحد في كل مرة، وأربعة خيارات.',
+          items: [
+            { q: 'من هو القائد الذي أسّس الإمبراطورية المغولية ووحّد القبائل المغولية؟', opts: ['قوبلاي خان', 'جنكيز خان', 'تيمورلنك', 'أتيلا'], a: 'جنكيز خان', hint: 'هو القائد الذي حمل لقب «الخان العظيم» في مطلع القرن الثالث عشر الميلادي.', info: 'وحّد جنكيز خان القبائل المغولية وأُعلن خانًا عظيمًا عام 1206م.' },
+            { q: 'في أي عام أُعلن تأسيس الإمبراطورية المغولية؟', opts: ['1000م', '1206م', '1453م', '1600م'], a: '1206م', hint: 'حدث ذلك في اجتماع كبير لزعماء القبائل في أوائل القرن الثالث عشر.', info: 'في عام 1206م اجتمع زعماء القبائل وأعلنوا تيموجين «جنكيز خان».' },
+            { q: 'ما المدينة التي تُعد عاصمة منغوليا اليوم؟', opts: ['بكين', 'أولان باتور', 'طوكيو', 'سيول'], a: 'أولان باتور', hint: 'ليست عاصمة الصين ولا اليابان ولا كوريا الجنوبية، بل أكبر مدن منغوليا نفسها.', info: 'أولان باتور هي العاصمة وأكبر مدن منغوليا.' },
+            { q: 'ما نمط الحياة التقليدي الذي اشتهرت به مجموعات كثيرة من سكان منغوليا؟', opts: ['الحياة البحرية', 'الحياة الرعوية والترحال', 'الحياة في الغابات الاستوائية', 'الحياة في الجزر'], a: 'الحياة الرعوية والترحال', hint: 'فكّري في السهول الواسعة: ماذا يفعل السكان بالمواشي والخيول والجمال؟', info: 'يتنقل كثير من الرعاة بمواشيهم بحثًا عن المراعي، ويسكنون خيام الـ Ger.' }
+          ]
+        },
+        {
+          type: 'order', title: 'النشاط الثاني: رتّبي الأحداث',
+          intro: 'اسحبي البطاقات بالمقبض، أو استخدمي السهمين، لترتيب الأحداث من الأقدم إلى الأحدث.',
+          events: [
+            'توحيد القبائل المغولية بقيادة جنكيز خان.',
+            'تأسيس الإمبراطورية المغولية عام 1206م.',
+            'توسّع الإمبراطورية المغولية.',
+            'تأسيس جمهورية منغوليا الشعبية عام 1924م.'
+          ],
+          hint: 'لا تُعلَن الإمبراطورية قبل توحيد القبائل، وأحدث الأحداث وقع في القرن العشرين.'
+        },
+        {
+          type: 'quiz', title: 'النشاط الثالث: لغز تاريخي',
+          intro: 'اقرئي اللغز جيدًا ثم اختاري الجواب.',
+          items: [
+            { kind: 'riddle', pts: 15, q: 'أنا قائد مغولي وحّدت القبائل، وأسّست إمبراطورية واسعة في القرن الثالث عشر. فمن أنا؟', opts: ['جنكيز خان', 'قوبلاي خان', 'هولاكو', 'تيمورلنك'], a: 'جنكيز خان', hint: 'أنا أول من حمل لقب «الخان العظيم»، وأحفادي أكملوا التوسع بعدي.', info: 'جنكيز خان هو مؤسس الإمبراطورية المغولية.' }
+          ]
+        }
+      ]
+    },
+    {
+      key: 'landmarks', name: 'أسرار الأرض المنغولية', topic: 'المرحلة الثانية: المعالم',
+      desc: 'اكتشفي أماكن مشهورة بين الجبال والبحيرات والصحراء والأديرة.',
+      stamp: ['مستكشفة', 'المعالم'], art: 'monastery',
+      congrats: 'أصبحتِ تعرفين أشهر المعالم المنغولية وأين تقع.',
+      activities: [
+        {
+          type: 'match', title: 'النشاط الأول: مطابقة الصور',
+          intro: 'اضغطي على صورة ثم على اسمها. بعد كل مطابقة صحيحة تظهر بطاقة معلومات.',
+          items: [
+            { name: 'تمثال جنكيز خان للفروسية', art: 'statue', alt: 'رسم لتمثال فارس على حصان', hint: 'تمثال ضخم لفارس على حصان فوق قاعدة، يقع قرب العاصمة.', info: 'يقع في منطقة تسونجين بولداغ شرق أولان باتور، ويبلغ ارتفاعه نحو 40 مترًا.' },
+            { name: 'دير إردين زو', art: 'monastery', alt: 'رسم لدير بوذي بأسوار بيضاء', hint: 'دير بوذي قديم تحيط به أسوار بيضاء تعلوها أبراج صغيرة.', info: 'تأسس عام 1585م قرب مدينة خاراخورين، وهو من أقدم الأديرة البوذية في منغوليا.' },
+            { name: 'صحراء غوبي', art: 'gobi', alt: 'رسم لكثبان رملية', hint: 'منطقة جافة واسعة تغطيها الرمال والحصى في الجنوب.', info: 'تمتد في جنوب منغوليا وشمال الصين، وتتنوع بين الكثبان الرملية والسهول الحجرية.' },
+            { name: 'بحيرة خوفسغول', art: 'lake', alt: 'رسم لبحيرة زرقاء بين الجبال', hint: 'مياه زرقاء صافية تحيطها الجبال والغابات في الشمال.', info: 'من أكبر بحيرات المياه العذبة في منغوليا، وتقع في الشمال قرب الحدود الروسية.' },
+            { name: 'منتزه تيريلج الوطني', art: 'terelj', alt: 'رسم لتلال خضراء وصخرة كبيرة', hint: 'تلال خضراء وصخور كبيرة وأشجار صنوبر قرب العاصمة.', info: 'يقع قرب أولان باتور، ويشتهر بتكويناته الصخرية ووديانه الخضراء ومخيمات الـ Ger السياحية.' }
+          ]
+        },
+        {
+          type: 'quiz', title: 'النشاط الثاني: أين يقع المعلم؟',
+          intro: 'اضغطي على المنطقة الصحيحة في الخريطة.',
+          items: [
+            { zones: true, q: 'أين تقع صحراء غوبي؟', a: 'south', hint: 'الصحراء الكبرى في منغوليا تمتد قرب الحدود مع الصين.', info: 'تقع صحراء غوبي في الجزء الجنوبي من منغوليا.' },
+            { zones: true, q: 'في أي منطقة يقع تمثال جنكيز خان الشهير؟', a: 'center', hint: 'ابحثي عن العاصمة أولان باتور على الخريطة، فالتمثال قريب منها.', info: 'يقع التمثال شرق أولان باتور بنحو 50 كيلومترًا.' },
+            { zones: true, q: 'أين تقع بحيرة خوفسغول؟', a: 'north', hint: 'هي بحيرة عذبة باردة قرب الحدود الشمالية مع روسيا.', info: 'تقع بحيرة خوفسغول في شمال منغوليا.' }
+          ]
+        },
+        {
+          type: 'quiz', title: 'النشاط الثالث: خمّني المعلم من الوصف',
+          intro: 'ثلاثة ألغاز، وكل لغز بـ 15 نقطة.',
+          items: [
+            { kind: 'riddle', pts: 15, q: 'أنا صحراء واسعة تقع في جنوب منغوليا، وأشتهر بالكثبان الرملية والمناظر الصحراوية. فمن أنا؟', opts: ['صحراء غوبي', 'الربع الخالي', 'الصحراء الكبرى', 'صحراء سيناء'], a: 'صحراء غوبي', hint: 'أقع في جنوب منغوليا وليس في الجزيرة العربية ولا في أفريقيا.', info: 'صحراء غوبي من أشهر معالم منغوليا الطبيعية.' },
+            { kind: 'riddle', pts: 15, q: 'أنا بحيرة كبيرة تقع في شمال منغوليا، وأشتهر بمياهي العذبة وطبيعتي الجميلة. فمن أنا؟', opts: ['بحيرة خوفسغول', 'بحيرة فيكتوريا', 'بحيرة بايكال', 'بحيرة تيتيكاكا'], a: 'بحيرة خوفسغول', hint: 'أقع داخل حدود منغوليا نفسها، وبحيرة بايكال المجاورة تقع في روسيا.', info: 'بحيرة خوفسغول من أجمل البحيرات في شمال منغوليا.' },
+            { kind: 'riddle', pts: 15, q: 'أنا دير تاريخي مشهور يعود إلى القرن السادس عشر، وأُعد من أهم المواقع البوذية في منغوليا. فمن أنا؟', opts: ['دير إردين زو', 'معبد أنغكور وات', 'قصر الحمراء', 'سور الصين العظيم'], a: 'دير إردين زو', hint: 'اسمي يبدأ بكلمة «إردين»، وأنا موقع بوذي داخل منغوليا.', info: 'تأسس دير إردين زو عام 1585م.' }
+          ]
+        }
+      ]
+    },
+    {
+      key: 'culture', name: 'ألوان الثقافة', topic: 'المرحلة الثالثة: الثقافة والعادات',
+      desc: 'تعرّفي إلى الأطعمة والأزياء والأنغام التي تعبّر عن روح منغوليا.',
+      stamp: ['مستكشفة', 'الثقافة'], art: 'deel',
+      congrats: 'تعرّفتِ على أطعمة منغوليا وأزيائها وأنغامها وعاداتها.',
+      activities: [
+        {
+          type: 'quiz', title: 'النشاط الأول: خمّني الأكلة',
+          intro: 'انظري إلى الصورة ثم اختاري اسم الأكلة.',
+          items: [
+            { visual: 'buuz', q: 'ما اسم الزلابية المنغولية المحشوة باللحم؟', opts: ['البوز', 'السوشي', 'التاكو', 'البيتزا'], a: 'البوز', hint: 'السوشي ياباني والتاكو مكسيكي والبيتزا إيطالية، أما هذه فمنغولية وتُطهى على البخار.', info: 'البوز زلابية محشوة باللحم تُطهى على البخار، وتحضّر خاصة في مناسبات الأعياد.' },
+            { visual: 'khuushuur', q: 'ما اسم الفطائر المنغولية المحشوة باللحم والمقلية؟', opts: ['الكوشور', 'الكريب', 'السمبوسة الهندية', 'البان كيك'], a: 'الكوشور', hint: 'تشبه نصف دائرة مقلية، واسمها منغولي يبدأ بحرف الكاف.', info: 'الكوشور فطيرة مقلية محشوة باللحم، وتُقدَّم كثيرًا في مهرجان نادام.' }
+          ]
+        },
+        {
+          type: 'quiz', title: 'النشاط الثاني: اكتشفي الزي التقليدي',
+          intro: 'هذا هو الزي المنغولي التقليدي.',
+          items: [
+            { visual: 'deel', q: 'ما اسم الملابس التقليدية الطويلة التي يرتديها المنغوليون؟', opts: ['الديل', 'الكيمونو', 'الساري', 'العباءة المغربية'], a: 'الديل', hint: 'الكيمونو ياباني والساري هندي، أما هذا الرداء الطويل بحزام الخصر فمنغولي.', info: 'الديل رداء طويل يُشدّ بحزام عند الخصر، يُلبس في الحياة اليومية وفي المناسبات، وتختلف ألوانه وتطريزه من منطقة إلى أخرى.' }
+          ]
+        },
+        {
+          type: 'quiz', title: 'النشاط الثالث: اكتشفي الصوت المنغولي',
+          intro: 'اضغطي زر الاستماع ثم اختاري الإجابة. الأصوات مولَّدة تقريبيًا داخل اللعبة، وتحت كل صوت وصف بديل.',
+          items: [
+            { kind: 'sound', sound: 'morin', q: 'ما اسم الآلة الوترية المنغولية التي سمعتِ نغمتها؟', opts: ['مورين خور', 'البيانو', 'الطبل الأفريقي', 'الغيتار الكهربائي'], a: 'مورين خور', desc: 'نغمة طويلة دافئة تُعزف بقوس على وترين، ويزيّن رأس الآلة نقش على هيئة رأس حصان.', hint: 'اسمها يعني «كمان الحصان»، وتُعزف بقوس لا بالنقر.', info: 'المورين خور آلة وترية تقليدية، ويُنحت رأسها غالبًا على شكل رأس حصان.' },
+            { kind: 'sound', sound: 'khoomei', q: 'أي نوع من الغناء يُصدر فيه المغنّي نغمة منخفضة ثابتة ونغمة عالية في الوقت نفسه؟', opts: ['الغناء الحلقي', 'الأوبرا الأوروبية', 'الأناشيد المدرسية', 'الراب'], a: 'الغناء الحلقي', desc: 'صوت منخفض مستمر مثل الطنين، وفوقه نغمة رفيعة تشبه الصفير تتحرك صعودًا وهبوطًا.', hint: 'اسمه يدل على العضو الذي يخرج منه الصوت: الحلق.', info: 'الغناء الحلقي (خومي) فن منغولي تقليدي يُصدر فيه المغنّي نغمتين معًا.' },
+            { kind: 'sound', sound: 'horses', q: 'ما الذي تسمعينه في هذا المقطع؟', opts: ['خيول تعدو في السهول', 'أمواج البحر', 'مطر غزير', 'قطار سريع'], a: 'خيول تعدو في السهول', desc: 'وقع حوافر متتابع وسريع على الأرض، يعقبه صهيل قصير.', hint: 'الصوت إيقاع حوافر ثم صهيل، وهو حيوان محبوب عند المنغوليين.', info: 'للخيل مكانة كبيرة في حياة المنغوليين، وكثيرًا ما يتعلم الأطفال الركوب في سن مبكرة.' }
+          ]
+        },
+        {
+          type: 'quiz', title: 'النشاط الرابع: صح أم خطأ',
+          intro: 'اقرئي العبارة واختاري صح أو خطأ.',
+          items: [
+            { tf: true, fixed: true, q: 'يعيش بعض سكان منغوليا حياة الترحال والرعي.', opts: ['صح', 'خطأ'], a: 'صح', hint: 'كثير من الرعاة ما زالوا ينتقلون مع مواشيهم بين المراعي.', info: 'نعم، ما زالت حياة الرعي والترحال حاضرة في منغوليا.' },
+            { tf: true, fixed: true, q: 'الديل هو الزي التقليدي المنغولي.', opts: ['صح', 'خطأ'], a: 'صح', hint: 'تذكّري الرداء الطويل ذا الحزام الذي رأيتِه قبل قليل.', info: 'الديل هو الزي التقليدي المنغولي.' },
+            { tf: true, fixed: true, q: 'منغوليا دولة تقع في قارة أفريقيا.', opts: ['صح', 'خطأ'], a: 'خطأ', hint: 'منغوليا تقع بين روسيا والصين.', info: 'منغوليا في قارة آسيا، بين روسيا والصين.' },
+            { tf: true, fixed: true, q: 'يُعد مهرجان نادام من المهرجانات الثقافية المهمة في منغوليا.', opts: ['صح', 'خطأ'], a: 'صح', hint: 'يضم المصارعة وسباق الخيل والرماية.', info: 'نادام مهرجان وطني يضم المصارعة وسباق الخيل والرماية.' }
+          ]
+        }
+      ]
+    },
+    {
+      key: 'nature', name: 'مغامرة البراري', topic: 'المرحلة الرابعة: الطبيعة',
+      desc: 'انطلقي بين السهول والصحراء، وتعرّفي على حيواناتها وكيف نحمي الطبيعة.',
+      stamp: ['مستكشفة', 'الطبيعة'], art: 'gobi',
+      congrats: 'أنهيتِ مغامرة البراري، وتعلمتِ كيف نحافظ على الطبيعة.',
+      activities: [
+        {
+          type: 'quiz', title: 'النشاط الأول: من أنا؟',
+          intro: 'ألغاز عن الحيوانات المنغولية، وكل لغز بـ 15 نقطة.',
+          items: [
+            { kind: 'riddle', pts: 15, after: 'camel', q: 'أعيش في المناطق الصحراوية، وأستطيع تحمل الظروف القاسية، ولدي سنامان. فمن أنا؟', opts: ['الجمل البكتيري', 'الجمل العربي', 'الفيل', 'الدب القطبي'], a: 'الجمل البكتيري', hint: 'الجمل العربي له سنام واحد، أما أنا فلدي سنامان.', info: 'الجمل البكتيري يتحمل البرد الشديد والحرارة، ويعيش في صحراء غوبي.' },
+            { kind: 'riddle', pts: 15, after: 'przewalski', q: 'أنا حصان بري نادر، أعيش في منغوليا، وأُعرف باسم حصان برزوالسكي. فمن أنا؟', opts: ['حصان برزوالسكي', 'الحمار الوحشي', 'الزرافة', 'الغزال'], a: 'حصان برزوالسكي', hint: 'اسمي موجود في اللغز نفسه، وأنا من الخيول البرية.', info: 'حصان برزوالسكي حصان بري نادر، وعاد إلى بعض مناطق منغوليا بعد جهود حماية.' },
+            { kind: 'riddle', pts: 15, after: 'przewalski', q: 'أنا حيوان بري يشبه الحصان، وأعيش في السهول المنغولية، وأتميز بقدرتي على تحمل البرد. فمن أنا؟', opts: ['حصان برزوالسكي', 'الجمل العربي', 'الأسد', 'الفهد'], a: 'حصان برزوالسكي', hint: 'أنا من الخيول التي لم تُروَّض، وأعيش في السهول لا في الصحراء الحارة.', info: 'تتحمل الخيول البرية في السهول المنغولية شتاءً شديد البرودة.' }
+          ]
+        },
+        {
+          type: 'quiz', title: 'النشاط الثاني: رحلة إلى صحراء غوبي', journey: true,
+          intro: 'تسيرين مع جمل نحو الواحة. كل إجابة تقرّبك خطوة.',
+          items: [
+            { q: 'في أي جزء من منغوليا تقع صحراء غوبي؟', opts: ['الشمال', 'الجنوب', 'الشرق', 'الغرب'], a: 'الجنوب', hint: 'تقع قرب حدود منغوليا مع الصين.', info: 'تقع صحراء غوبي في جنوب منغوليا.' },
+            { q: 'أي حيوان يتكيف مع الحياة الصحراوية؟', opts: ['الجمل البكتيري', 'الدب القطبي', 'البطريق', 'الفقمة'], a: 'الجمل البكتيري', hint: 'يخزّن الدهون في سنامه ويتحمل العطش والبرد والحر.', info: 'الجمل البكتيري يعيش في الصحراء ويتحمل الظروف القاسية.' },
+            { q: 'ما نوع المناخ الذي تتميز به أجزاء واسعة من منغوليا؟', opts: ['مناخ استوائي رطب طوال العام', 'مناخ قاري شديد التباين بين الصيف والشتاء', 'مناخ متوسطي معتدل', 'مناخ مداري ممطر'], a: 'مناخ قاري شديد التباين بين الصيف والشتاء', hint: 'البلاد بعيدة عن البحار، لذلك يشتد البرد شتاءً ويدفأ الجو صيفًا.', info: 'بُعد منغوليا عن البحار يجعل الفرق كبيرًا بين الصيف والشتاء.' }
+          ]
+        },
+        {
+          type: 'quiz', title: 'النشاط الثالث: تحدي حماية الطبيعة',
+          intro: 'اختاري التصرف الصحيح في كل موقف.',
+          items: [
+            { q: 'وجدتِ نفايات في منطقة طبيعية، ماذا تفعلين؟', opts: ['أتركها في المكان.', 'أجمعها وأضعها في المكان المخصص.', 'أرميها في البحيرة.'], a: 'أجمعها وأضعها في المكان المخصص.', hint: 'الطبيعة النظيفة مسؤولية الجميع، والنفايات لا تُترك ولا تُرمى في الماء.', info: 'جمع النفايات ووضعها في مكانها يحمي الحيوانات والمياه.' },
+            { q: 'أنهيتِ رحلة تخييم وبقيت جمرات النار مشتعلة، ماذا تفعلين؟', opts: ['أغادر فورًا وأتركها.', 'أطفئها تمامًا قبل المغادرة.', 'أضيف إليها أعشابًا يابسة.'], a: 'أطفئها تمامًا قبل المغادرة.', hint: 'الجمرات قد تشعل العشب الجاف وتسبب حريقًا كبيرًا.', info: 'إطفاء النار بالكامل يمنع حرائق السهول والغابات.' },
+            { q: 'رأيتِ حيوانًا بريًا قريبًا وتريدين تصويره، ماذا تفعلين؟', opts: ['أقترب منه وألاحقه.', 'أصوّره من بعيد دون إزعاجه.', 'أطعمه من طعامي.'], a: 'أصوّره من بعيد دون إزعاجه.', hint: 'الحيوانات البرية تخاف من الاقتراب، والطعام البشري لا يناسبها.', info: 'مراقبة الحيوانات من بعيد تحميها وتحميكِ.' }
+          ]
+        }
+      ]
+    }
+  ];
+
+  function itemsMax(items) { var s = 0; items.forEach(function (it) { s += (it.pts || 10); }); return s; }
+  function activityMax(a) {
+    if (a.type === 'quiz') return itemsMax(a.items);
+    if (a.type === 'order') return 20;
+    if (a.type === 'match') return a.items.length * 10;
+    return 0;
+  }
+  function stageMax(st) {
+    var s = 100;
+    st.activities.forEach(function (a) { s += activityMax(a) + 20; });
+    return s;
+  }
+  var FINAL_BONUS = 150;
+
+  /* ============ الحالة والحفظ ============ */
+  var KEY = 'mongolia-explorer-v1';
+  var DEFAULT = { name: '', points: 0, correct: 0, first: 0, total: 0, done: [false, false, false, false], act: [0, 0, 0, 0], finalBonus: false };
+  var S = loadState() || clone(DEFAULT);
+  function loadState() {
+    try {
+      var raw = sessionStorage.getItem(KEY);
+      if (!raw) return null;
+      var o = JSON.parse(raw);
+      return Object.assign(clone(DEFAULT), o);
+    } catch (e) { return null; }
+  }
+  function save() { try { sessionStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* التخزين غير متاح */ } }
+  function playerName() { return S.name && S.name.trim() ? S.name.trim() : 'المستكشفة'; }
+  function doneCount() { return S.done.filter(Boolean).length; }
+  function isOpen(i) { return i === 0 || S.done[i - 1]; }
+
+  var curStage = 0, curAct = 0, snapshot = null, inActivity = false, screenNow = 'home';
+
+  /* ============ شريط النقاط ============ */
+  function updateHUD(bump) {
+    $('#hud-points').textContent = S.points;
+    $('#hud-correct').textContent = S.correct;
+    $('#hud-stamps').textContent = doneCount() + '/4';
+    $('#hud-stages').textContent = doneCount() + ' من 4';
+    $('#hud-bar').style.width = (doneCount() / 4 * 100) + '%';
+    $('#hud-barwrap').setAttribute('aria-valuenow', doneCount());
+    if (bump) {
+      var n = $('#hud-points');
+      n.classList.remove('bump'); void n.offsetWidth; n.classList.add('bump');
+    }
+  }
+  function award(n, anchor) {
+    if (!n) return;
+    S.points += n;
+    updateHUD(true);
+    floatPts(n, anchor);
+  }
+  function floatPts(n, anchor) {
+    var layer = $('#float-layer');
+    var x = window.innerWidth / 2, y = window.innerHeight / 2;
+    if (anchor && anchor.getBoundingClientRect) {
+      var r = anchor.getBoundingClientRect();
+      x = r.left + r.width / 2; y = Math.max(80, Math.min(window.innerHeight - 80, r.top + r.height / 2));
+    }
+    var d = h('div', 'float-pts', '+' + n);
+    d.style.left = x + 'px'; d.style.top = y + 'px';
+    layer.appendChild(d);
+    setTimeout(function () { if (d.parentNode) d.parentNode.removeChild(d); }, 1300);
+  }
+
+  /* ============ المؤثرات (قصاصات ملونة) ============ */
+  var parts = [], fxRunning = false;
+  function burst(anchor, big) {
+    if (reduceMotion) return;
+    var cv = $('#fx'), dpr = window.devicePixelRatio || 1;
+    cv.width = window.innerWidth * dpr; cv.height = window.innerHeight * dpr;
+    var ox = window.innerWidth / 2, oy = big ? window.innerHeight * 0.3 : window.innerHeight / 2;
+    if (!big && anchor && anchor.getBoundingClientRect) {
+      var r = anchor.getBoundingClientRect(); ox = r.left + r.width / 2; oy = r.top + r.height / 2;
+    }
+    var cols = [C.saffron, C.blue, C.grass, C.red, '#F3C74B', '#5FB2D6'];
+    var n = big ? 130 : 26;
+    for (var i = 0; i < n; i++) {
+      var a = Math.random() * Math.PI * 2, sp = (big ? 5 : 3) + Math.random() * (big ? 7 : 4);
+      parts.push({ x: ox, y: oy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - (big ? 4 : 2), s: 4 + Math.random() * 5, c: pick(cols), life: 0, max: 60 + Math.random() * 40, rot: Math.random() * 6 });
+    }
+    if (!fxRunning) { fxRunning = true; requestAnimationFrame(function loop() {
+      var ctx = cv.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      parts = parts.filter(function (p) { return p.life < p.max; });
+      parts.forEach(function (p) {
+        p.life++; p.x += p.vx; p.y += p.vy; p.vy += 0.22; p.vx *= 0.99; p.rot += 0.2;
+        ctx.save(); ctx.globalAlpha = Math.max(0, 1 - p.life / p.max);
+        ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillStyle = p.c;
+        ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.6); ctx.restore();
+      });
+      if (parts.length) { requestAnimationFrame(loop); }
+      else { ctx.clearRect(0, 0, window.innerWidth, window.innerHeight); fxRunning = false; }
+    }); }
+  }
+
+  /* ============ الأصوات (توليد تقريبي) ============ */
+  var actx = null, stopFns = [];
+  function ensureAudio() {
+    if (!actx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      try { actx = new AC(); } catch (e) { return null; }
+    }
+    if (actx.state === 'suspended' && actx.resume) { actx.resume(); }
+    return actx;
+  }
+  function stopSound() {
+    stopFns.forEach(function (f) { try { f(); } catch (e) { /* تم إيقافه */ } });
+    stopFns = [];
+    $$('.sound.playing').forEach(function (s) { s.classList.remove('playing'); });
+  }
+  function noiseBuffer(ctx, dur) {
+    var len = Math.floor(ctx.sampleRate * dur), buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+    for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    return buf;
+  }
+  function playSound(kind) {
+    var ctx = ensureAudio();
+    if (!ctx) return 0;
+    var t0 = ctx.currentTime + 0.05, srcs = [], total = 5;
+    var master = ctx.createGain(); master.gain.value = 0.5; master.connect(ctx.destination);
+    function keep(node) { srcs.push(node); return node; }
+
+    if (kind === 'morin') {
+      var notes = [293.66, 329.63, 392.0, 440.0, 392.0, 329.63, 293.66, 220.0];
+      var t = t0;
+      notes.forEach(function (f, i) {
+        var dur = i === notes.length - 1 ? 1.3 : 0.55;
+        var o = keep(ctx.createOscillator()); o.type = 'sawtooth'; o.frequency.setValueAtTime(f, t);
+        var o2 = keep(ctx.createOscillator()); o2.type = 'sawtooth'; o2.frequency.setValueAtTime(f * 1.004, t);
+        var lfo = keep(ctx.createOscillator()); lfo.frequency.value = 5.5;
+        var lg = ctx.createGain(); lg.gain.value = f * 0.01; lfo.connect(lg); lg.connect(o.frequency); lg.connect(o2.frequency);
+        var lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1700; lp.Q.value = 2;
+        var g = ctx.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.35, t + 0.08); g.gain.setValueAtTime(0.3, t + dur - 0.12); g.gain.linearRampToValueAtTime(0, t + dur);
+        o.connect(lp); o2.connect(lp); lp.connect(g); g.connect(master);
+        o.start(t); o2.start(t); lfo.start(t); o.stop(t + dur + 0.05); o2.stop(t + dur + 0.05); lfo.stop(t + dur + 0.05);
+        t += dur;
+      });
+      total = t - t0;
+    } else if (kind === 'khoomei') {
+      total = 6;
+      var drone = keep(ctx.createOscillator()); drone.type = 'sawtooth'; drone.frequency.value = 98;
+      var dl = ctx.createBiquadFilter(); dl.type = 'lowpass'; dl.frequency.value = 420; dl.Q.value = 3;
+      var dg = ctx.createGain(); dg.gain.setValueAtTime(0, t0); dg.gain.linearRampToValueAtTime(0.4, t0 + 0.4); dg.gain.setValueAtTime(0.4, t0 + total - 0.5); dg.gain.linearRampToValueAtTime(0, t0 + total);
+      drone.connect(dl); dl.connect(dg); dg.connect(master); drone.start(t0); drone.stop(t0 + total + 0.05);
+      var mult = [8, 9, 10, 12, 10, 9, 12, 10];
+      var th = t0 + 0.6;
+      mult.forEach(function (m) {
+        var w = keep(ctx.createOscillator()); w.type = 'sine'; w.frequency.setValueAtTime(98 * m, th);
+        var wg = ctx.createGain(); wg.gain.setValueAtTime(0, th); wg.gain.linearRampToValueAtTime(0.13, th + 0.1); wg.gain.linearRampToValueAtTime(0.0, th + 0.62);
+        w.connect(wg); wg.connect(master); w.start(th); w.stop(th + 0.65);
+        th += 0.62;
+      });
+    } else if (kind === 'horses') {
+      total = 5;
+      var nb = noiseBuffer(ctx, 0.12);
+      var pattern = [0, 0.13, 0.26];
+      for (var bar = 0; bar < 6; bar++) {
+        pattern.forEach(function (off) {
+          var ns = keep(ctx.createBufferSource()); ns.buffer = nb;
+          var bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 520 + Math.random() * 120; bp.Q.value = 1.4;
+          var ng = ctx.createGain(); var st2 = t0 + bar * 0.55 + off;
+          ng.gain.setValueAtTime(0.0, st2); ng.gain.linearRampToValueAtTime(0.8, st2 + 0.008); ng.gain.exponentialRampToValueAtTime(0.001, st2 + 0.1);
+          ns.connect(bp); bp.connect(ng); ng.connect(master); ns.start(st2); ns.stop(st2 + 0.12);
+        });
+      }
+      var nt = t0 + 3.4;
+      var ne = keep(ctx.createOscillator()); ne.type = 'sawtooth';
+      ne.frequency.setValueAtTime(620, nt); ne.frequency.linearRampToValueAtTime(980, nt + 0.18); ne.frequency.linearRampToValueAtTime(420, nt + 1.0);
+      var vib = keep(ctx.createOscillator()); vib.frequency.value = 22; var vg = ctx.createGain(); vg.gain.value = 40; vib.connect(vg); vg.connect(ne.frequency);
+      var nl = ctx.createBiquadFilter(); nl.type = 'lowpass'; nl.frequency.value = 1900;
+      var ngn = ctx.createGain(); ngn.gain.setValueAtTime(0, nt); ngn.gain.linearRampToValueAtTime(0.35, nt + 0.08); ngn.gain.linearRampToValueAtTime(0, nt + 1.05);
+      ne.connect(nl); nl.connect(ngn); ngn.connect(master); ne.start(nt); vib.start(nt); ne.stop(nt + 1.1); vib.stop(nt + 1.1);
+    }
+    stopFns.push(function () {
+      srcs.forEach(function (s) { try { s.stop(); } catch (e) { /* منتهٍ */ } });
+      try { master.disconnect(); } catch (e) { /* منتهٍ */ }
+    });
+    return total;
+  }
+
+  /* ============ النوافذ ============ */
+  var lastFocus = null;
+  function openModal(id) {
+    var m = $('#' + id);
+    lastFocus = document.activeElement;
+    m.hidden = false;
+    document.body.classList.add('modal-open');
+    var f = $('[data-autofocus]', m) || $('button', m);
+    if (f) f.focus();
+  }
+  function closeModal(id) {
+    var m = $('#' + id);
+    m.hidden = true;
+    if (!$$('.modal').some(function (x) { return !x.hidden; })) document.body.classList.remove('modal-open');
+    if (lastFocus && lastFocus.focus) { try { lastFocus.focus(); } catch (e) { /* لا شيء */ } }
+  }
+  var confirmAction = null;
+  function askConfirm(title, text, yesLabel, onYes) {
+    $('#confirm-title').textContent = title;
+    $('#confirm-text').textContent = text;
+    $('#confirm-yes').textContent = yesLabel;
+    confirmAction = onYes;
+    openModal('modal-confirm');
+  }
+
+  /* ============ التنقل بين الشاشات ============ */
+  function show(name) {
+    screenNow = name;
+    ['home', 'map', 'stage', 'end'].forEach(function (n) { $('#screen-' + n).hidden = (n !== name); });
+    $('#hud').hidden = (name === 'home');
+    $('#hud-map').hidden = (name !== 'stage');
+    $('#hud-home').hidden = (name === 'home');
+    window.scrollTo(0, 0);
+    var focusEl = $('#screen-' + name + ' [tabindex="-1"]');
+    if (focusEl) { try { focusEl.focus({ preventScroll: true }); } catch (e) { /* لا شيء */ } }
+    if (name !== 'stage') stopSound();
+  }
+
+  /* ============ الخريطة ============ */
+  var STATIONS = [{ x: 660, y: 205 }, { x: 500, y: 130 }, { x: 340, y: 205 }, { x: 190, y: 160 }];
+  function renderMap() {
+    var svg = '<svg viewBox="0 0 800 400" role="img" aria-label="خريطة الرحلة بأربع محطات">' +
+      '<defs><clipPath id="mapClip"><path d="' + OUTLINE + '"/></clipPath></defs>' +
+      '<path d="' + OUTLINE + '" fill="#A9CD76" stroke="' + C.grassDeep + '" stroke-width="6" stroke-linejoin="round"/>' +
+      '<g clip-path="url(#mapClip)">' +
+      '<path d="M200 285 Q400 240 600 285 T820 280 V400 H200Z" fill="#EBD59B"/>' +
+      '<ellipse cx="400" cy="92" rx="30" ry="12" fill="#5FB2D6"/>' +
+      '<path d="M50 190 L90 135 L130 190Z M110 190 L160 118 L210 190Z M690 120 L730 80 L770 120Z" fill="#7B9A6A"/>' +
+      '</g>' +
+      '<path d="M660 205 Q580 100 500 130 T340 205 T190 160" fill="none" stroke="' + C.earth + '" stroke-width="5" stroke-dasharray="4 14" stroke-linecap="round"/>';
+    STATIONS.forEach(function (p, i) {
+      var st = STAGES[i], done = S.done[i], open = isOpen(i) && !done;
+      var fill = done ? '#3E8E48' : (open ? C.saffron : '#B7AD94');
+      var cls = 'station ' + (done ? 'st-done' : (open ? 'st-open' : 'st-locked'));
+      svg += '<g class="' + cls + '" data-stage="' + i + '" role="button" tabindex="0" aria-label="المحطة ' + (i + 1) + ': ' + st.name + (done ? ' (مكتملة)' : (open ? ' (متاحة)' : ' (مقفلة)')) + '">' +
+        (open ? '<circle class="st-ring" cx="' + p.x + '" cy="' + p.y + '" r="30" fill="none" stroke="' + C.saffron + '" stroke-width="4"/>' : '') +
+        '<circle class="st-main" cx="' + p.x + '" cy="' + p.y + '" r="30" fill="' + fill + '" stroke="' + C.ink + '" stroke-width="4"/>' +
+        '<text x="' + p.x + '" y="' + (p.y + 11) + '" text-anchor="middle" font-size="32" font-weight="800" fill="' + (done ? '#fff' : C.ink) + '">' + (done ? '✓' : (i + 1)) + '</text>' +
+        '<text x="' + p.x + '" y="' + (p.y + 58) + '" text-anchor="middle" font-size="22" font-weight="800" fill="' + C.ink + '" stroke="#fff" stroke-width="5" paint-order="stroke">' + st.name + '</text></g>';
+    });
+    svg += '</svg>';
+    $('#mapboard').innerHTML = svg;
+    $$('#mapboard .station').forEach(function (g) {
+      var i = +g.dataset.stage;
+      g.addEventListener('click', function () { tryStart(i); });
+      g.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tryStart(i); } });
+    });
+
+    var grid = $('#stage-grid'); grid.innerHTML = '';
+    STAGES.forEach(function (st, i) {
+      var done = S.done[i], open = isOpen(i) && !done, locked = !isOpen(i);
+      var card = h('article', 'stage-card' + (locked ? ' is-locked' : ''));
+      card.append(hh('div', 'stage-art', ART[st.art]()));
+      var info = h('div', 'stage-info');
+      info.append(h('span', 'stage-no', 'المحطة ' + (i + 1) + ' • ' + st.topic.split(': ')[1]));
+      info.append(h('h3', null, st.name));
+      info.append(h('p', 'stage-desc', st.desc));
+      var meta = h('div', 'stage-meta');
+      meta.append(h('span', 'pill pill-pts', 'حتى ' + stageMax(st) + ' نقطة'));
+      meta.append(h('span', 'pill ' + (done ? 'pill-done' : (locked ? 'pill-locked' : 'pill-open')), done ? 'مكتملة' : (locked ? 'مقفلة' : 'متاحة')));
+      info.append(meta);
+      var btn = h('button', 'btn ' + (open ? 'btn-primary' : ''), done ? 'أنجزتِ هذه المحطة' : 'ابدئي التحدي');
+      btn.type = 'button';
+      if (!open) btn.disabled = true;
+      btn.addEventListener('click', function () { tryStart(i); });
+      info.append(btn);
+      if (locked) info.append(h('p', 'lock-note', 'أكملي المحطة السابقة لفتح هذه المحطة.'));
+      card.append(info);
+      grid.append(card);
+    });
+
+    var extra = $('#map-extra'); extra.innerHTML = '';
+    if (doneCount() === 4) {
+      var b = h('button', 'btn btn-primary btn-xl', 'اذهبي إلى شاشة الاحتفال'); b.type = 'button';
+      b.addEventListener('click', function () { renderEnd(); show('end'); });
+      extra.append(b);
+    }
+    $('#map-fact').innerHTML = '<b>هل تعلمين؟</b>';
+    $('#map-fact').append(h('p', null, nextFact()));
+  }
+  function tryStart(i) {
+    if (S.done[i] || !isOpen(i)) return;
+    startStage(i);
+  }
+
+  /* ============ تشغيل المراحل ============ */
+  function startStage(i) {
+    curStage = i;
+    curAct = S.act[i] || 0;
+    if (curAct >= STAGES[i].activities.length) curAct = 0;
+    show('stage');
+    beginActivity();
+  }
+  function renderDots() {
+    var st = STAGES[curStage], ol = $('#act-dots'); ol.innerHTML = '';
+    var all = S.done[curStage];
+    st.activities.forEach(function (a, k) {
+      var isDone = all || k < curAct, isNow = !all && k === curAct;
+      var li = h('li', isDone ? 'done' : (isNow ? 'now' : ''), isDone ? '✓' : String(k + 1));
+      li.setAttribute('aria-label', 'النشاط ' + (k + 1) + (isDone ? ' (مكتمل)' : (isNow ? ' (الحالي)' : '')));
+      ol.append(li);
+    });
+  }
+  function beginActivity() {
+    var st = STAGES[curStage], act = st.activities[curAct];
+    snapshot = JSON.stringify(S);
+    inActivity = true;
+    stopSound();
+    $('#stage-topic').textContent = st.topic;
+    $('#stage-title').textContent = st.name;
+    $('#act-title').textContent = act.title;
+    $('#act-intro').textContent = act.intro || '';
+    renderDots();
+    var host = $('#stage-body'); host.innerHTML = '';
+    window.scrollTo(0, 0);
+    if (act.type === 'quiz') {
+      var opts = { onDone: activityDone };
+      if (act.journey) {
+        opts.scene = journeyScene();
+        opts.onResolve = function (i, ok, n) {
+          var camel = $('#camel'); if (!camel) return;
+          camel.classList.add('walking');
+          camel.style.right = (2 + (i + 1) * (64 / n)) + '%';
+          setTimeout(function () { camel.classList.remove('walking'); }, 950);
+        };
+      }
+      runQuiz(host, act.items, opts);
+    } else if (act.type === 'order') {
+      runOrder(host, act, activityDone);
+    } else if (act.type === 'match') {
+      runMatch(host, act, activityDone);
+    }
+  }
+  function journeyScene() {
+    return '<div class="journey" aria-hidden="true">' +
+      '<svg class="journey-bg" viewBox="0 0 800 160" preserveAspectRatio="none">' +
+      '<rect width="800" height="160" fill="#BFE3F4"/><circle cx="650" cy="40" r="22" fill="#F3C74B"/>' +
+      '<path d="M0 110 Q120 70 250 105 T520 100 T800 95 V160 H0Z" fill="#E6CB8E"/>' +
+      '<path d="M0 132 Q160 100 320 128 T640 125 T800 120 V160 H0Z" fill="#D9B574"/></svg>' +
+      '<div class="oasis">' + ART.palm() + '</div>' +
+      '<div class="camel" id="camel">' + ART.camel() + '</div></div>';
+  }
+  function activityDone() {
+    var st = STAGES[curStage], last = curAct === st.activities.length - 1;
+    var host = $('#stage-body');
+    inActivity = false; snapshot = null; stopSound();
+    award(20, host);
+    S.act[curStage] = curAct + 1;
+    save();
+    burst(host);
+    host.innerHTML = '';
+    var card = h('div', 'act-done');
+    card.append(h('h3', null, 'أحسنتِ! أنهيتِ هذا النشاط'));
+    card.append(h('p', null, 'حصلتِ على 20 نقطة مكافأة لإكمال النشاط.'));
+    var btn = h('button', 'btn btn-primary btn-xl', last ? 'العودة إلى الخريطة' : 'النشاط التالي');
+    btn.type = 'button';
+    btn.addEventListener('click', function () {
+      if (last) { renderMap(); show('map'); } else { curAct++; renderDots(); beginActivity(); }
+    });
+    card.append(btn);
+    host.append(card);
+    renderDots();
+    if (last) {
+      completeStage(curStage);
+    } else { btn.focus(); }
+  }
+
+  /* ---- محرك الأسئلة ---- */
+  function runQuiz(host, items, opts) {
+    host.innerHTML = '';
+    var top = h('div', 'quiz-top'), body = h('div', 'quiz-body');
+    host.append(top, body);
+    if (opts.scene) top.innerHTML = opts.scene;
+    var i = 0;
+    render();
+
+    function render() {
+      stopSound();
+      var it = items[i];
+      body.innerHTML = '';
+      var panel = h('article', 'qpanel');
+      var meta = h('div', 'qmeta');
+      var tagText = it.kind === 'riddle' ? 'لغز' : (it.kind === 'sound' ? 'تحدي الصوت' : 'سؤال');
+      meta.append(h('span', 'qtag' + (it.kind === 'riddle' ? ' riddle' : ''), tagText), h('span', 'qcount', (i + 1) + ' من ' + items.length));
+      panel.append(meta);
+      if (it.visual) panel.append(hh('div', 'qvisual', ART[it.visual]()));
+      panel.append(h('h3', 'qtext', it.q));
+      if (it.sound) panel.append(buildSound(it));
+
+      var wrap = h('div', it.zones ? 'zonewrap' : ('options' + (it.tf ? ' options-tf' : '')));
+      var nodes = {};
+      if (it.zones) {
+        wrap.innerHTML = zoneMapSVG('q' + i);
+        $$('.zone', wrap).forEach(function (zn) {
+          var v = zn.dataset.zone; nodes[v] = zn;
+          zn.addEventListener('click', function () { choose(v); });
+          zn.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(v); } });
+        });
+      } else {
+        var list = it.fixed ? it.opts.slice() : shuffle(it.opts);
+        list.forEach(function (t, k) {
+          var b = h('button', 'opt'); b.type = 'button';
+          if (!it.tf) b.append(h('span', 'opt-letter', LETTERS[k]));
+          b.append(h('span', 'opt-text', t));
+          nodes[t] = b;
+          b.addEventListener('click', function () { choose(t); });
+          wrap.append(b);
+        });
+      }
+      panel.append(wrap);
+      var fb = h('div', 'fb'); fb.hidden = true; fb.setAttribute('aria-live', 'polite');
+      panel.append(fb);
+      var row = h('div', 'next-row'); row.hidden = true;
+      var nb = h('button', 'btn btn-primary', i < items.length - 1 ? (it.zones ? 'السؤال التالي' : 'التالي') : 'إنهاء النشاط');
+      nb.type = 'button';
+      nb.addEventListener('click', function () { if (i < items.length - 1) { i++; render(); window.scrollTo(0, 0); } else { opts.onDone(); } });
+      row.append(nb); panel.append(row);
+      body.append(panel);
+
+      var attempts = 0, locked = false;
+      var answerLabel = it.zones ? ZONE_NAMES[it.a] : it.a;
+
+      function setFB(kind, title, text) {
+        fb.className = 'fb fb-' + kind; fb.hidden = false; fb.innerHTML = '';
+        fb.append(h('b', null, title));
+        if (text) fb.append(h('span', null, text));
+      }
+      function afterVisual() {
+        if (it.after && ART[it.after]) {
+          var v = hh('div', 'qvisual', ART[it.after]());
+          panel.insertBefore(v, row);
+        }
+      }
+      function finish(ok) {
+        locked = true;
+        wrap.classList.add('is-locked');
+        $$('.opt', wrap).forEach(function (b) { b.disabled = true; });
+        afterVisual();
+        row.hidden = false;
+        if (opts.onResolve) opts.onResolve(i, ok, items.length);
+        nb.focus({ preventScroll: true });
+        try { nb.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' }); } catch (e) { /* لا شيء */ }
+      }
+      function choose(v) {
+        if (locked) return;
+        var node = nodes[v];
+        if (!node || node.classList.contains('wrong')) return;
+        attempts++;
+        if (v === it.a) {
+          node.classList.add('correct');
+          var full = it.pts || 10, gain = attempts === 1 ? full : Math.ceil(full / 2);
+          award(gain, node);
+          S.correct++; S.total++; if (attempts === 1) S.first++;
+          burst(node);
+          setFB('ok', attempts === 1 ? pick(['أحسنتِ! إجابة صحيحة.', 'رائع! أصبتِ.', 'ممتاز! تابعي هكذا.']) : 'أصبتِ في المحاولة الثانية، ونلتِ نصف النقاط.', it.info);
+          finish(true);
+        } else {
+          node.classList.add('wrong');
+          if (node.tagName === 'BUTTON') node.disabled = true; else node.setAttribute('aria-disabled', 'true');
+          if (attempts === 1) {
+            setFB('hint', 'ليست الإجابة الصحيحة، حاولي مرة أخرى. لم تُخصم أي نقاط.', 'تلميح: ' + it.hint);
+          } else {
+            S.total++;
+            nodes[it.a].classList.add('correct', 'revealed');
+            setFB('reveal', 'الإجابة الصحيحة: ' + answerLabel, it.info);
+            finish(false);
+          }
+        }
+      }
+    }
+  }
+
+  function buildSound(it) {
+    var box = h('div', 'sound');
+    var row = h('div', 'sound-row');
+    var play = h('button', 'btn btn-primary', 'استمعي إلى الصوت'); play.type = 'button';
+    var stop = h('button', 'btn', 'إيقاف'); stop.type = 'button';
+    var desc = h('button', 'btn', 'اعرضي وصف الصوت'); desc.type = 'button';
+    var wave = hh('span', 'wave', '<i></i><i></i><i></i><i></i>'); wave.setAttribute('aria-hidden', 'true');
+    row.append(play, stop, desc, wave);
+    var d = h('p', 'sound-desc', 'وصف الصوت: ' + it.desc); d.hidden = true;
+    var note = h('p', 'sound-note', 'إذا لم يعمل الصوت على جهازك، استخدمي وصف الصوت وأجيبي من خلاله.');
+    box.append(row, d, note);
+    var timer = null;
+    play.addEventListener('click', function () {
+      stopSound(); clearTimeout(timer);
+      var total = playSound(it.sound);
+      if (!total) { d.hidden = false; note.textContent = 'تعذّر تشغيل الصوت على هذا الجهاز، وهذا وصفه بدلًا منه.'; return; }
+      box.classList.add('playing');
+      timer = setTimeout(function () { box.classList.remove('playing'); }, total * 1000 + 300);
+    });
+    stop.addEventListener('click', function () { clearTimeout(timer); stopSound(); });
+    desc.addEventListener('click', function () { d.hidden = !d.hidden; desc.textContent = d.hidden ? 'اعرضي وصف الصوت' : 'أخفي الوصف'; });
+    return box;
+  }
+
+  /* ---- ترتيب الأحداث ---- */
+  function runOrder(host, act, onDone) {
+    host.innerHTML = '';
+    var n = act.events.length;
+    var order = shuffle(act.events.map(function (_, k) { return k; }));
+    var tries = 0;
+    var tries0 = 0;
+    while (order.every(function (v, k) { return v === k; }) && tries0 < 10) { order = shuffle(order); tries0++; }
+    var panel = h('article', 'qpanel');
+    var meta = h('div', 'qmeta');
+    meta.append(h('span', 'qtag', 'ترتيب'), h('span', 'qcount', 'من الأقدم إلى الأحدث'));
+    panel.append(meta);
+    var list = h('ol', 'order-list');
+    list.setAttribute('aria-label', 'الأحداث التاريخية');
+    panel.append(list);
+
+    function build() {
+      list.innerHTML = '';
+      order.forEach(function (idx) {
+        var li = h('li', 'order-item'); li.dataset.i = idx;
+        var grip = hh('span', 'grip', '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><g fill="currentColor"><circle cx="7" cy="5" r="1.8"/><circle cx="13" cy="5" r="1.8"/><circle cx="7" cy="10" r="1.8"/><circle cx="13" cy="10" r="1.8"/><circle cx="7" cy="15" r="1.8"/><circle cx="13" cy="15" r="1.8"/></g></svg>');
+        grip.setAttribute('aria-hidden', 'true');
+        var txt = h('span', 'otext', act.events[idx]);
+        var up = h('button', 'mv', '▲'); up.type = 'button'; up.setAttribute('aria-label', 'تحريك لأعلى');
+        var dn = h('button', 'mv', '▼'); dn.type = 'button'; dn.setAttribute('aria-label', 'تحريك لأسفل');
+        up.addEventListener('click', function () { move(li, -1); });
+        dn.addEventListener('click', function () { move(li, 1); });
+        li.append(grip, txt, up, dn);
+        attachDrag(li, grip);
+        list.append(li);
+      });
+    }
+    function readOrder() { return $$('.order-item', list).map(function (li) { return +li.dataset.i; }); }
+    function move(li, dir) {
+      if (list.classList.contains('is-locked')) return;
+      var sib = dir < 0 ? li.previousElementSibling : li.nextElementSibling;
+      if (!sib) return;
+      if (dir < 0) list.insertBefore(li, sib); else list.insertBefore(sib, li);
+      $$('.order-item', list).forEach(function (x) { x.classList.remove('right', 'off'); });
+      var b = $$('.mv', li)[dir < 0 ? 0 : 1]; if (b) b.focus();
+    }
+    function attachDrag(li, grip) {
+      grip.addEventListener('pointerdown', function (e) {
+        if (list.classList.contains('is-locked')) return;
+        e.preventDefault();
+        li.classList.add('dragging');
+        try { grip.setPointerCapture(e.pointerId); } catch (err) { /* لا شيء */ }
+        function onMove(ev) {
+          var y = ev.clientY, target = null;
+          var sibs = $$('.order-item', list).filter(function (x) { return x !== li; });
+          for (var k = 0; k < sibs.length; k++) {
+            var r = sibs[k].getBoundingClientRect();
+            if (y < r.top + r.height / 2) { target = sibs[k]; break; }
+          }
+          if (target !== li.nextElementSibling) list.insertBefore(li, target);
+        }
+        function onUp() {
+          li.classList.remove('dragging');
+          grip.removeEventListener('pointermove', onMove);
+          grip.removeEventListener('pointerup', onUp);
+          grip.removeEventListener('pointercancel', onUp);
+          $$('.order-item', list).forEach(function (x) { x.classList.remove('right', 'off'); });
+        }
+        grip.addEventListener('pointermove', onMove);
+        grip.addEventListener('pointerup', onUp);
+        grip.addEventListener('pointercancel', onUp);
+      });
+    }
+    build();
+
+    var fb = h('div', 'fb'); fb.hidden = true; fb.setAttribute('aria-live', 'polite'); panel.append(fb);
+    var row = h('div', 'next-row');
+    var check = h('button', 'btn btn-primary', 'تحقّقي من الترتيب'); check.type = 'button';
+    var next = h('button', 'btn btn-primary', 'إنهاء النشاط'); next.type = 'button'; next.hidden = true;
+    row.append(check, next); panel.append(row);
+    host.append(panel);
+
+    function setFB(kind, title, text) {
+      fb.className = 'fb fb-' + kind; fb.hidden = false; fb.innerHTML = '';
+      fb.append(h('b', null, title)); if (text) fb.append(h('span', null, text));
+    }
+    check.addEventListener('click', function () {
+      var cur = readOrder(), good = 0;
+      var lis = $$('.order-item', list);
+      lis.forEach(function (li, k) {
+        var ok = cur[k] === k; if (ok) good++;
+        li.classList.toggle('right', ok); li.classList.toggle('off', !ok);
+      });
+      tries++;
+      if (good === n) {
+        var gain = tries === 1 ? 20 : 10;
+        award(gain, check); burst(check);
+        S.correct++; S.total++; if (tries === 1) S.first++;
+        setFB('ok', tries === 1 ? 'أحسنتِ! ترتيبك صحيح.' : 'ترتيب صحيح في المحاولة الثانية، ونلتِ نصف النقاط.', 'بدأت القصة بتوحيد القبائل، ثم الإمبراطورية، ثم توسعها، وصولًا إلى القرن العشرين.');
+        list.classList.add('is-locked'); $$('.mv', list).forEach(function (b) { b.disabled = true; });
+        check.hidden = true; next.hidden = false; next.focus();
+      } else if (tries === 1) {
+        setFB('hint', 'الترتيب ليس صحيحًا بعد، وقد لوّنتُ البطاقات الصحيحة بالأخضر. لم تُخصم أي نقاط.', 'تلميح: ' + act.hint);
+      } else {
+        S.total++;
+        order = act.events.map(function (_, k) { return k; });
+        build();
+        $$('.order-item', list).forEach(function (li) { li.classList.add('right'); });
+        list.classList.add('is-locked'); $$('.mv', list).forEach(function (b) { b.disabled = true; });
+        setFB('reveal', 'هذا هو الترتيب الصحيح.', 'لم تُمنح نقاط هنا، لكنك تعرفين الآن تسلسل الأحداث.');
+        check.hidden = true; next.hidden = false; next.focus();
+      }
+    });
+    next.addEventListener('click', onDone);
+  }
+
+  /* ---- مطابقة الصور ---- */
+  function runMatch(host, act, onDone) {
+    host.innerHTML = '';
+    var items = act.items, resolved = {}, count = 0, tries = {}, selPic = null, selName = null;
+    var panel = h('article', 'qpanel');
+    var meta = h('div', 'qmeta');
+    var counter = h('span', 'qcount', 'تمت مطابقة 0 من ' + items.length);
+    meta.append(h('span', 'qtag', 'مطابقة'), counter);
+    panel.append(meta);
+    var grid = h('div', 'match');
+    var pics = h('div', 'match-pics'), names = h('div', 'match-names');
+    var picBtns = [], nameBtns = {};
+    items.forEach(function (it, k) {
+      var b = h('button', 'pic'); b.type = 'button'; b.setAttribute('aria-label', 'الصورة ' + (k + 1) + ': ' + it.alt);
+      b.innerHTML = ART[it.art]() + '<span class="pic-n" aria-hidden="true">' + (k + 1) + '</span>';
+      b.addEventListener('click', function () { pickPic(k); });
+      picBtns.push(b); pics.append(b);
+    });
+    shuffle(items.map(function (_, k) { return k; })).forEach(function (k) {
+      var b = h('button', 'nm', items[k].name); b.type = 'button';
+      b.addEventListener('click', function () { pickName(k); });
+      nameBtns[k] = b; names.append(b);
+    });
+    grid.append(pics, names);
+    panel.append(grid);
+    var fb = h('div', 'fb'); fb.hidden = true; fb.setAttribute('aria-live', 'polite'); panel.append(fb);
+    var infoBox = h('div', 'match-info'); panel.append(infoBox);
+    var row = h('div', 'next-row'); row.hidden = true;
+    var next = h('button', 'btn btn-primary', 'إنهاء النشاط'); next.type = 'button';
+    row.append(next); panel.append(row);
+    host.append(panel);
+    next.addEventListener('click', onDone);
+
+    function setFB(kind, title, text) {
+      fb.className = 'fb fb-' + kind; fb.hidden = false; fb.innerHTML = '';
+      fb.append(h('b', null, title)); if (text) fb.append(h('span', null, text));
+    }
+    function refresh() {
+      picBtns.forEach(function (b, k) { b.classList.toggle('sel', selPic === k); });
+      Object.keys(nameBtns).forEach(function (k) { nameBtns[k].classList.toggle('sel', selName === +k); });
+    }
+    function pickPic(k) { if (resolved[k]) return; selPic = (selPic === k) ? null : k; refresh(); evaluate(); }
+    function pickName(k) { if (resolved[k]) return; selName = (selName === k) ? null : k; refresh(); evaluate(); }
+    function resolve(k, ok, gain) {
+      resolved[k] = true; count++;
+      var cls = ok ? 'matched' : 'revealed';
+      picBtns[k].classList.add(cls); nameBtns[k].classList.add(cls);
+      picBtns[k].disabled = true; nameBtns[k].disabled = true;
+      S.total++;
+      if (ok) { S.correct++; if (tries[k] === 1) S.first++; award(gain, picBtns[k]); burst(picBtns[k]); }
+      var card = h('div', 'info-card' + (ok ? '' : ' revealed'));
+      card.append(h('b', null, items[k].name), h('span', null, items[k].info));
+      infoBox.append(card);
+      counter.textContent = 'تمت مطابقة ' + count + ' من ' + items.length;
+      if (count === items.length) { row.hidden = false; next.focus({ preventScroll: true }); }
+    }
+    function evaluate() {
+      if (selPic === null || selName === null) return;
+      var p = selPic, nm = selName;
+      selPic = null; selName = null; refresh();
+      tries[p] = (tries[p] || 0) + 1;
+      if (p === nm) {
+        setFB('ok', tries[p] === 1 ? 'مطابقة صحيحة! +10 نقاط' : 'مطابقة صحيحة في المحاولة الثانية! +5 نقاط');
+        resolve(p, true, tries[p] === 1 ? 10 : 5);
+      } else {
+        picBtns[p].classList.add('shake');
+        setTimeout(function () { picBtns[p].classList.remove('shake'); }, 450);
+        if (tries[p] >= 2) {
+          setFB('reveal', 'سأريكِ المطابقة الصحيحة لهذه الصورة.', 'لم تُمنح نقاط هنا.');
+          resolve(p, false, 0);
+        } else {
+          setFB('hint', 'ليست المطابقة الصحيحة. لم تُخصم أي نقاط.', 'تلميح: ' + items[p].hint);
+        }
+      }
+    }
+  }
+
+  /* ============ إكمال المرحلة والنهاية ============ */
+  function stampSVG(st, done) {
+    var col = done ? '#B63E2B' : '#B7AD94';
+    return '<svg viewBox="0 0 120 120" role="img" aria-label="ختم ' + st.stamp.join(' ') + '">' +
+      '<circle cx="60" cy="60" r="55" fill="#FFF8E4" stroke="' + col + '" stroke-width="4"/>' +
+      '<circle cx="60" cy="60" r="46" fill="none" stroke="' + col + '" stroke-width="2" stroke-dasharray="3 5"/>' +
+      '<path d="M60 18 l5 10 11 1.5-8 8 2 11-10-5.5-10 5.5 2-11-8-8 11-1.5z" fill="' + (done ? C.saffron : '#D6CDB5') + '" stroke="' + col + '" stroke-width="1.5" stroke-linejoin="round" transform="translate(0,2)"/>' +
+      '<text x="60" y="76" text-anchor="middle" font-family="Lalezar, Tajawal, sans-serif" font-size="19" fill="' + col + '">' + st.stamp[0] + '</text>' +
+      '<text x="60" y="97" text-anchor="middle" font-family="Lalezar, Tajawal, sans-serif" font-size="22" fill="' + col + '">' + st.stamp[1] + '</text>' +
+      '</svg>';
+  }
+  function completeStage(i) {
+    var st = STAGES[i];
+    S.done[i] = true;
+    award(100, $('#stage-body'));
+    var finalNow = doneCount() === 4 && !S.finalBonus;
+    if (finalNow) { S.finalBonus = true; award(FINAL_BONUS, $('#stage-body')); }
+    save();
+    renderDots(); renderMap();
+    var card = $('#ms-card'); card.innerHTML = '';
+    card.append(hh('div', 'stamp', stampSVG(st, true)));
+    var t = h('h2', null, 'أحسنتِ! أكملتِ مرحلة «' + st.name + '»'); t.id = 'ms-title'; card.append(t);
+    card.append(h('p', null, st.congrats));
+    var ul = h('ul', 'earned');
+    ul.append(h('li', null, '+100 نقطة لإكمال المرحلة'));
+    ul.append(h('li', null, 'ختم «' + st.stamp.join(' ') + '»'));
+    if (finalNow) ul.append(h('li', null, '+' + FINAL_BONUS + ' نقطة مكافأة إكمال الرحلة'));
+    card.append(ul);
+    var f = h('div', 'fact'); f.append(hh('b', null, 'هل تعلمين؟'), h('p', null, nextFact())); card.append(f);
+    var btn = h('button', 'btn btn-primary btn-xl', finalNow ? 'إلى شاشة الاحتفال' : 'العودة إلى الخريطة'); btn.type = 'button';
+    btn.dataset.autofocus = '';
+    btn.addEventListener('click', function () {
+      closeModal('modal-stage');
+      if (finalNow) { renderEnd(); show('end'); } else { renderMap(); show('map'); }
+    });
+    card.append(btn);
+    burst(null, true);
+    openModal('modal-stage');
+  }
+
+  function certHTML() {
+    var stamps = STAGES.map(function (s) { return stampSVG(s, true); }).join('');
+    var d = '';
+    try { d = new Date().toLocaleDateString('ar', { year: 'numeric', month: 'long', day: 'numeric' }); } catch (e) { d = ''; }
+    return '<div class="cert-inner">' +
+      '<div class="cert-border"></div>' +
+      '<h2 id="cert-h">شهادة مستكشفة منغوليا</h2>' +
+      '<p class="cert-to">تُمنح هذه الشهادة إلى:</p>' +
+      '<p class="cert-name" data-cert-name></p>' +
+      '<p class="cert-text">وذلك لإكمالها رحلة استكشافية تعليمية عن دولة منغوليا، والتعرف على تاريخها ومعالمها وثقافتها وطبيعتها.</p>' +
+      '<div class="cert-stamps">' + stamps + '</div>' +
+      '<div class="cert-foot"><span>مجموع النقاط: ' + S.points + '</span>' + (d ? '<span>' + d + '</span>' : '') + '</div>' +
+      '<div class="cert-border"></div></div>';
+  }
+  function fillCert(el) {
+    el.innerHTML = certHTML();
+    $('[data-cert-name]', el).textContent = playerName();
+  }
+  function renderEnd() {
+    $('#end-name').textContent = playerName();
+    var acc = S.total ? Math.round(S.first / S.total * 100) : 0;
+    var stats = $('#end-stats'); stats.innerHTML = '';
+    [[S.points, 'مجموع النقاط'], [doneCount() + ' من 4', 'المراحل المكتملة'], [acc + '%', 'إجابات صحيحة من أول محاولة'], [S.correct, 'عدد الإجابات الصحيحة']].forEach(function (p) {
+      var d = h('div', 'stat'); d.append(h('b', null, String(p[0])), h('span', null, p[1])); stats.append(d);
+    });
+    $('#end-stamps').innerHTML = STAGES.map(function (s, i) { return stampSVG(s, S.done[i]); }).join('');
+    fillCert($('#cert-inline'));
+    burst(null, true);
+  }
+
+  /* ============ إعادة اللعبة ============ */
+  function resetGame(goHome) {
+    var name = S.name;
+    S = clone(DEFAULT); S.name = name;
+    snapshot = null; inActivity = false; factIdx = 0;
+    stopSound(); save(); updateHUD();
+    if (goHome) { $('#player-name').value = S.name; show('home'); } else { renderMap(); show('map'); }
+  }
+  function leaveStage(toHome) {
+    if (snapshot) {
+      var nm = S.name;
+      S = Object.assign(clone(DEFAULT), JSON.parse(snapshot)); S.name = nm;
+      snapshot = null;
+    }
+    inActivity = false; stopSound(); updateHUD();
+    if (toHome) { show('home'); } else { renderMap(); show('map'); }
+  }
+
+  /* ============ الربط ============ */
+  function init() {
+    $('#home-map').innerHTML = ART.mapHome();
+    $('#home-explorer').innerHTML = ART.explorer();
+    var info = $('#info-list'); INFO.forEach(function (t) { info.append(h('li', null, t)); });
+    var nameInput = $('#player-name');
+    nameInput.value = S.name || '';
+    nameInput.addEventListener('input', function () { S.name = nameInput.value.trim().slice(0, 20); save(); });
+
+    $('#btn-start').addEventListener('click', function () { updateHUD(); renderMap(); show('map'); });
+    $('#btn-how').addEventListener('click', function () { openModal('modal-how'); });
+    $('#btn-info').addEventListener('click', function () { openModal('modal-info'); });
+    $('#btn-cert').addEventListener('click', function () { fillCert($('#cert-full')); openModal('modal-cert'); });
+    $('#btn-again').addEventListener('click', function () { resetGame(true); });
+
+    $('#hud-map').addEventListener('click', function () {
+      if (inActivity) {
+        askConfirm('الخروج إلى الخريطة؟', 'إن خرجتِ الآن فستعيدين هذا النشاط من بدايته، وستعود نقاطك إلى ما كانت عليه قبل بدئه.', 'نعم، اخرجي', function () { leaveStage(false); });
+      } else { renderMap(); show('map'); }
+    });
+    $('#hud-home').addEventListener('click', function () {
+      if (inActivity) {
+        askConfirm('العودة إلى الرئيسية؟', 'إن خرجتِ الآن فستعيدين هذا النشاط من بدايته، وستعود نقاطك إلى ما كانت عليه قبل بدئه.', 'نعم، اخرجي', function () { leaveStage(true); });
+      } else { stopSound(); show('home'); }
+    });
+    $('#hud-reset').addEventListener('click', function () {
+      askConfirm('البدء من جديد؟', 'سيتم مسح نقاطك وأختامك وتقدمك، وتبدئين الرحلة من المحطة الأولى.', 'نعم، ابدئي من جديد', function () { resetGame(false); });
+    });
+    $('#confirm-yes').addEventListener('click', function () {
+      var f = confirmAction; confirmAction = null;
+      closeModal('modal-confirm');
+      if (f) f();
+    });
+
+    $$('.modal').forEach(function (m) {
+      $$('[data-close]', m).forEach(function (b) { b.addEventListener('click', function () { closeModal(m.id); }); });
+      m.addEventListener('click', function (e) { if (e.target === m && m.id !== 'modal-stage') closeModal(m.id); });
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      var open = $$('.modal').filter(function (m) { return !m.hidden && m.id !== 'modal-stage'; });
+      if (open.length) closeModal(open[open.length - 1].id);
+    });
+
+    updateHUD();
+    show('home');
+  }
+
+  init();
+})();
+
+</script>
+
+</body></html>

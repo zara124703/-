@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>رحلة استكشاف منغوليا</title>
+<meta name="description" content="لعبة تعليمية تفاعلية بالعربية لاستكشاف تاريخ منغوليا ومعالمها وثقافتها وطبيعتها.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Tajawal:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app" id="app" dir="rtl" lang="ar">
+
+  <div class="scenery" aria-hidden="true">
+    <svg viewBox="0 0 1200 200" preserveAspectRatio="none" focusable="false">
+      <path d="M0 110 Q150 50 300 100 T600 90 T900 80 T1200 100 V200 H0Z" fill="#B7D08A"/>
+      <path d="M0 150 Q200 100 400 140 T800 130 T1200 140 V200 H0Z" fill="#8FB863"/>
+      <path d="M0 180 Q250 150 500 175 T1000 170 T1200 175 V200 H0Z" fill="#6E9F4B"/>
+    </svg>
+  </div>
+
+  <!-- شريط النقاط والتقدم -->
+  <header class="hud" id="hud" hidden>
+    <div class="hud-row">
+      <div class="hud-score" aria-live="polite">
+        <svg viewBox="0 0 24 24" class="hud-star" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.3 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z" fill="#E3A41F" stroke="#B87D0A" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        <span class="hud-num" id="hud-points">0</span>
+        <span class="hud-unit">نقطة</span>
+      </div>
+      <div class="hud-chips">
+        <span class="chip">إجابات صحيحة <b id="hud-correct">0</b></span>
+        <span class="chip">الأختام <b id="hud-stamps">0/4</b></span>
+      </div>
+      <div class="hud-actions">
+        <button class="hud-btn" id="hud-map" type="button">الخريطة</button>
+        <button class="hud-btn" id="hud-home" type="button">الرئيسية</button>
+        <button class="hud-btn hud-btn-danger" id="hud-reset" type="button">من البداية</button>
+      </div>
+    </div>
+    <div class="hud-progress">
+      <span>المراحل المكتملة <b id="hud-stages">0 من 4</b></span>
+      <div class="bar" role="progressbar" aria-label="المراحل المكتملة" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0" id="hud-barwrap"><i id="hud-bar"></i></div>
+    </div>
+  </header>
+
+  <main class="main">
+
+    <!-- الصفحة الرئيسية -->
+    <section class="screen" id="screen-home" aria-labelledby="home-title">
+      <div class="home">
+        <div class="home-text">
+          <p class="kicker">Mongolia Exploration Game</p>
+          <h1 id="home-title" tabindex="-1">مرحبًا بكِ في رحلة استكشاف منغوليا!</h1>
+          <p class="lead">استعدّي لاكتشاف دولة مميزة تمتد فيها السهول الواسعة، وتعيش فيها الخيول بين الطبيعة، وتحافظ فيها الشعوب على عاداتها وتقاليدها القديمة.</p>
+
+          <div class="name-field">
+            <label for="player-name">اسم المستكشفة (اختياري)</label>
+            <input id="player-name" type="text" maxlength="20" autocomplete="off" placeholder="اكتبي اسمك أو لقبك">
+          </div>
+
+          <div class="home-actions">
+            <button class="btn btn-primary btn-xl" id="btn-start" type="button">ابدئي الرحلة</button>
+            <button class="btn" id="btn-how" type="button">طريقة اللعب</button>
+            <button class="btn" id="btn-info" type="button">معلومات عن منغوليا</button>
+          </div>
+
+          <ul class="home-stages" aria-label="المراحل الأربع">
+            <li><b>4</b> مراحل</li>
+            <li>التاريخ</li>
+            <li>المعالم</li>
+            <li>الثقافة</li>
+            <li>الطبيعة</li>
+          </ul>
+        </div>
+        <div class="home-art">
+          <div id="home-map"></div>
+          <div class="home-explorer" id="home-explorer"></div>
+          <p class="bubble">أنا رفيقتك في الرحلة. هيا نبدأ!</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- خريطة اللعبة -->
+    <section class="screen" id="screen-map" aria-labelledby="map-title" hidden>
+      <div class="screen-head">
+        <h2 id="map-title" tabindex="-1">خريطة الرحلة</h2>
+        <p class="sub">تبدأ الرحلة من الشرق وتتجه غربًا. تُفتح كل محطة بعد إكمال التي قبلها.</p>
+      </div>
+      <div class="mapboard" id="mapboard"></div>
+      <div class="stage-grid" id="stage-grid"></div>
+      <div class="map-extra" id="map-extra"></div>
+      <aside class="fact" id="map-fact"></aside>
+    </section>
+
+    <!-- شاشة المرحلة -->
+    <section class="screen" id="screen-stage" aria-labelledby="stage-title" hidden>
+      <div class="stage-top">
+        <div>
+          <p class="kicker" id="stage-topic"></p>
+          <h2 id="stage-title" tabindex="-1"></h2>
+        </div>
+        <ol class="dots" id="act-dots" aria-label="أنشطة المرحلة"></ol>
+      </div>
+      <div class="act-head">
+        <h3 id="act-title"></h3>
+        <p id="act-intro" class="act-intro"></p>
+      </div>
+      <div id="stage-body" class="stage-body"></div>
+    </section>
+
+    <!-- شاشة النهاية -->
+    <section class="screen" id="screen-end" aria-labelledby="end-title" hidden>
+      <div class="end">
+        <p class="kicker">اكتملت الرحلة</p>
+        <h2 id="end-title" tabindex="-1">مبروك! لقد أكملتِ رحلة استكشاف منغوليا</h2>
+        <p class="end-name">المستكشفة: <b id="end-name"></b></p>
+        <div class="end-stats" id="end-stats"></div>
+        <div class="end-stamps" id="end-stamps"></div>
+        <div class="end-actions">
+          <button class="btn btn-primary btn-xl" id="btn-cert" type="button">عرض الشهادة للطباعة</button>
+          <button class="btn btn-xl" id="btn-again" type="button">العبِي مرة أخرى</button>
+        </div>
+        <div class="cert-wrap">
+          <div class="cert" id="cert-inline"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>لعبة تعليمية لطالبات المرحلة الثانوية. لا تحتاج إلى تسجيل دخول ولا تجمع أي بيانات شخصية.</p>
+  </footer>
+
+  <!-- النوافذ -->
+  <div class="modal" id="modal-how" role="dialog" aria-modal="true" aria-labelledby="how-title" hidden>
+    <div class="modal-card">
+      <h2 id="how-title">طريقة اللعب</h2>
+      <ol class="how">
+        <li>اضغطي «ابدئي الرحلة» لتنتقلي إلى خريطة منغوليا.</li>
+        <li>اختاري المحطة المتاحة وابدئي التحدي. كل محطة فيها عدة أنشطة.</li>
+        <li>كل إجابة صحيحة من أول محاولة تمنحك <b>10 نقاط</b>، وحل اللغز يمنحك <b>15 نقطة</b>.</li>
+        <li>إذا أخطأتِ في المحاولة الأولى فلن تُخصم نقاط، وسيظهر لك تلميح لتحاولي مرة ثانية.</li>
+        <li>إكمال كل نشاط يمنحك <b>20 نقطة</b> إضافية، وإكمال المرحلة يمنحك <b>100 نقطة</b> وختمًا جديدًا.</li>
+        <li>اجمعي الأختام الأربعة لتحصلي على شهادة «مستكشفة منغوليا».</li>
+      </ol>
+      <button class="btn btn-primary" type="button" data-close data-autofocus>فهمت، هيا نلعب</button>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-info" role="dialog" aria-modal="true" aria-labelledby="info-title" hidden>
+    <div class="modal-card">
+      <h2 id="info-title">معلومات عن منغوليا</h2>
+      <ul class="facts-list" id="info-list"></ul>
+      <button class="btn btn-primary" type="button" data-close data-autofocus>إغلاق</button>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-confirm" role="dialog" aria-modal="true" aria-labelledby="confirm-title" hidden>
+    <div class="modal-card modal-small">
+      <h2 id="confirm-title"></h2>
+      <p id="confirm-text"></p>
+      <div class="modal-actions">
+        <button class="btn btn-danger" type="button" id="confirm-yes"></button>
+        <button class="btn" type="button" data-close data-autofocus>إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-stage" role="dialog" aria-modal="true" aria-labelledby="ms-title" hidden>
+    <div class="modal-card modal-center" id="ms-card"></div>
+  </div>
+
+  <div class="modal modal-cert" id="modal-cert" role="dialog" aria-modal="true" aria-labelledby="cert-title" hidden>
+    <div class="modal-card modal-wide">
+      <p class="cert-tip" id="cert-title">لحفظ الشهادة، التقطي لقطة شاشة لها، أو اطبعيها من قائمة المتصفح.</p>
+      <div class="cert" id="cert-full"></div>
+      <button class="btn btn-primary" type="button" data-close data-autofocus>إغلاق</button>
+    </div>
+  </div>
+
+  <canvas id="fx" aria-hidden="true"></canvas>
+  <div id="float-layer" aria-hidden="true"></div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
